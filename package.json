@@ -1,7 +1,7 @@
 {
   "name": "excel-editor-dashboard",
   "version": "1.0.0",
-  "description": "Professional Excel Editor Dashboard",
+  "description": "Professional Excel Editor Dashboard for Data Collection",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -10,6 +10,6 @@
     "express": "^4.18.2"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   }
 }
