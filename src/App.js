@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Upload, Download, Filter, History, Maximize2, Minimize2, Grid, List, Undo, Redo, Save, X, ChevronLeft, ChevronRight, Plus, Trash2, Brain } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Upload, Download, Filter, History, Grid, List, Undo, Redo, Save, X, ChevronLeft, ChevronRight, Plus, Trash2, Brain } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const ExcelDashboard = () => {
@@ -8,7 +8,7 @@ const ExcelDashboard = () => {
   const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
   const [filters, setFilters] = useState({});
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'card'
+  const [viewMode, setViewMode] = useState('grid');
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -16,10 +16,10 @@ const ExcelDashboard = () => {
   const [aiSuggestions, setAiSuggestions] = useState({});
   const [activeCell, setActiveCell] = useState(null);
   const [filename, setFilename] = useState('');
+  const [isClient, setIsClient] = useState(false);
   const fileInputRef = useRef(null);
-  const autoSaveInterval = useRef(null);
+  const autoSaveIntervalRef = useRef(null);
 
-  // Color scheme
   const colors = {
     bg: '#EEEED3',
     secondary: '#BDC8B3',
@@ -28,58 +28,80 @@ const ExcelDashboard = () => {
     white: '#ffffff'
   };
 
-  // Load from localStorage on mount
+  // Check if we're in the browser (not during SSR/build)
   useEffect(() => {
+    setIsClient(true);
     loadFromStorage();
   }, []);
 
-  // Auto-save functionality
+  // Auto-save every 5 seconds
   useEffect(() => {
-    if (data.length > 0) {
-      autoSaveInterval.current = setInterval(() => {
-        saveToStorage();
-      }, 5000); // Auto-save every 5 seconds
+    if (!isClient || data.length === 0) return;
+
+    if (autoSaveIntervalRef.current) {
+      clearInterval(autoSaveIntervalRef.current);
     }
-    return () => clearInterval(autoSaveInterval.current);
-  }, [data, headers, currentSheet, filename]);
+
+    autoSaveIntervalRef.current = setInterval(() => {
+      saveToStorage();
+    }, 5000);
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
+    };
+  }, [isClient, data, headers, currentSheet, filename, workbook]);
 
   const saveToStorage = () => {
-    const timestamp = new Date().toISOString();
-    const saveData = {
-      data,
-      headers,
-      currentSheet,
-      filename,
-      timestamp,
-      workbook: workbook ? XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' }) : null
-    };
-    
-    // Save current state
-    localStorage.setItem('excel_current', JSON.stringify(saveData));
-    
-    // Save to history
-    const historyData = JSON.parse(localStorage.getItem('excel_history') || '[]');
-    historyData.unshift(saveData);
-    if (historyData.length > 20) historyData.pop(); // Keep last 20 versions
-    localStorage.setItem('excel_history', JSON.stringify(historyData));
+    if (!isClient || typeof window === 'undefined') return;
+
+    try {
+      const timestamp = new Date().toISOString();
+      const saveData = {
+        data,
+        headers,
+        currentSheet,
+        filename,
+        timestamp,
+        workbook: workbook ? XLSX.write(workbook, { type: 'base64', bookType: 'xlsx' }) : null
+      };
+      
+      window.localStorage.setItem('excel_current', JSON.stringify(saveData));
+      
+      const historyData = JSON.parse(window.localStorage.getItem('excel_history') || '[]');
+      historyData.unshift(saveData);
+      if (historyData.length > 20) historyData.pop();
+      window.localStorage.setItem('excel_history', JSON.stringify(historyData));
+    } catch (error) {
+      console.error('Failed to save to localStorage:', error);
+    }
   };
 
   const loadFromStorage = () => {
-    const saved = localStorage.getItem('excel_current');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setData(parsed.data || []);
-      setHeaders(parsed.headers || []);
-      setCurrentSheet(parsed.currentSheet || 0);
-      setFilename(parsed.filename || '');
-      
-      if (parsed.workbook) {
-        const wb = XLSX.read(parsed.workbook, { type: 'base64' });
-        setWorkbook(wb);
+    if (typeof window === 'undefined') return;
+
+    try {
+      const saved = window.localStorage.getItem('excel_current');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setData(parsed.data || []);
+        setHeaders(parsed.headers || []);
+        setCurrentSheet(parsed.currentSheet || 0);
+        setFilename(parsed.filename || '');
+        
+        if (parsed.workbook) {
+          const wb = XLSX.read(parsed.workbook, { type: 'base64' });
+          setWorkbook(wb);
+        }
+        
+        if (parsed.data && parsed.headers) {
+          setHistory([{ data: parsed.data, headers: parsed.headers }]);
+          setHistoryIndex(0);
+        }
       }
-      
-      // Initialize history
-      addToHistory(parsed.data, parsed.headers);
+    } catch (error) {
+      console.error('Failed to load from localStorage:', error);
     }
   };
 
@@ -93,6 +115,15 @@ const ExcelDashboard = () => {
     }
     setShowHistory(false);
     addToHistory(version.data, version.headers);
+  };
+
+  const getStoredHistory = () => {
+    if (!isClient || typeof window === 'undefined') return [];
+    try {
+      return JSON.parse(window.localStorage.getItem('excel_history') || '[]');
+    } catch {
+      return [];
+    }
   };
 
   const addToHistory = (newData, newHeaders) => {
@@ -165,9 +196,8 @@ const ExcelDashboard = () => {
     setData(newData);
     addToHistory(newData, headers);
     
-    // Generate AI suggestions for numeric fields
     if (isNumericField(header)) {
-      generateAiSuggestions(header, rowIndex);
+      generateAiSuggestions(header, rowIndex, newData);
     }
   };
 
@@ -176,9 +206,8 @@ const ExcelDashboard = () => {
     return numericFields.some(field => header.toLowerCase().includes(field));
   };
 
-  const generateAiSuggestions = (header, currentRow) => {
-    // Get previous values for this column
-    const values = data.slice(Math.max(0, currentRow - 5), currentRow)
+  const generateAiSuggestions = (header, currentRow, dataArray) => {
+    const values = dataArray.slice(Math.max(0, currentRow - 5), currentRow)
       .map(row => parseFloat(row[header]))
       .filter(v => !isNaN(v));
     
@@ -216,16 +245,10 @@ const ExcelDashboard = () => {
   const handleDownload = () => {
     if (!workbook) return;
     
-    // Update current sheet with edited data
     const ws = XLSX.utils.json_to_sheet(data, { header: headers });
     workbook.Sheets[workbook.SheetNames[currentSheet]] = ws;
     
     XLSX.writeFile(workbook, filename || 'edited_data.xlsx');
-  };
-
-  const applyFilters = () => {
-    // Filter logic would be applied here
-    // For now, just showing the filter UI
   };
 
   const getFilteredData = () => {
@@ -295,11 +318,8 @@ const ExcelDashboard = () => {
               gap: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              transition: 'all 0.3s',
-              boxShadow: '0 2px 8px rgba(126,154,119,0.3)'
+              transition: 'all 0.3s'
             }}
-            onMouseOver={e => e.target.style.transform = 'translateY(-2px)'}
-            onMouseOut={e => e.target.style.transform = 'translateY(0)'}
           >
             <Upload size={18} /> Upload Excel
           </button>
@@ -319,74 +339,55 @@ const ExcelDashboard = () => {
               gap: '8px',
               fontSize: '14px',
               fontWeight: '600',
-              opacity: workbook ? 1 : 0.5,
-              transition: 'all 0.3s'
+              opacity: workbook ? 1 : 0.5
             }}
           >
             <Download size={18} /> Download
           </button>
           
-          <button
-            onClick={undo}
-            disabled={historyIndex <= 0}
-            style={{
+          <button onClick={undo} disabled={historyIndex <= 0} style={{
               background: colors.white,
               color: colors.text,
               border: `2px solid ${colors.secondary}`,
               borderRadius: '12px',
               padding: '12px',
               cursor: historyIndex > 0 ? 'pointer' : 'not-allowed',
-              opacity: historyIndex > 0 ? 1 : 0.5,
-              transition: 'all 0.3s'
-            }}
-          >
+              opacity: historyIndex > 0 ? 1 : 0.5
+            }}>
             <Undo size={18} />
           </button>
           
-          <button
-            onClick={redo}
-            disabled={historyIndex >= history.length - 1}
-            style={{
+          <button onClick={redo} disabled={historyIndex >= history.length - 1} style={{
               background: colors.white,
               color: colors.text,
               border: `2px solid ${colors.secondary}`,
               borderRadius: '12px',
               padding: '12px',
               cursor: historyIndex < history.length - 1 ? 'pointer' : 'not-allowed',
-              opacity: historyIndex < history.length - 1 ? 1 : 0.5,
-              transition: 'all 0.3s'
-            }}
-          >
+              opacity: historyIndex < history.length - 1 ? 1 : 0.5
+            }}>
             <Redo size={18} />
           </button>
           
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            style={{
+          <button onClick={() => setShowHistory(!showHistory)} style={{
               background: colors.white,
               color: colors.text,
               border: `2px solid ${colors.secondary}`,
               borderRadius: '12px',
               padding: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.3s'
-            }}
-          >
+              cursor: 'pointer'
+            }}>
             <History size={18} />
           </button>
           
-          <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'card' : 'grid')}
-            style={{
+          <button onClick={() => setViewMode(viewMode === 'grid' ? 'card' : 'grid')} style={{
               background: viewMode === 'card' ? colors.accent : colors.white,
               color: viewMode === 'card' ? colors.white : colors.text,
               border: `2px solid ${colors.accent}`,
               borderRadius: '12px',
               padding: '12px',
-              cursor: 'pointer',
-              transition: 'all 0.3s'
-            }}
-          >
+              cursor: 'pointer'
+            }}>
             {viewMode === 'grid' ? <List size={18} /> : <Grid size={18} />}
           </button>
         </div>
@@ -417,7 +418,7 @@ const ExcelDashboard = () => {
               <X size={20} />
             </button>
           </div>
-          {JSON.parse(localStorage.getItem('excel_history') || '[]').map((version, i) => (
+          {getStoredHistory().map((version, i) => (
             <div
               key={i}
               onClick={() => loadHistoryVersion(version)}
@@ -429,8 +430,8 @@ const ExcelDashboard = () => {
                 cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
-              onMouseOver={e => e.target.style.background = colors.secondary}
-              onMouseOut={e => e.target.style.background = colors.bg}
+              onMouseOver={e => e.currentTarget.style.background = colors.secondary}
+              onMouseOut={e => e.currentTarget.style.background = colors.bg}
             >
               <div style={{ fontSize: '14px', fontWeight: '600', color: colors.text }}>
                 {version.filename || 'Untitled'}
@@ -468,8 +469,7 @@ const ExcelDashboard = () => {
                 cursor: 'pointer',
                 fontSize: '14px',
                 fontWeight: '600',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.3s'
+                whiteSpace: 'nowrap'
               }}
             >
               {name}
@@ -526,286 +526,102 @@ const ExcelDashboard = () => {
         </div>
       )}
 
-      {/* Data View */}
-      {data.length > 0 && (
+      {/* Data View - Grid */}
+      {data.length > 0 && viewMode === 'grid' && (
         <div style={{
           background: colors.white,
           borderRadius: '16px',
           padding: '24px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
         }}>
-          {viewMode === 'grid' ? (
-            <>
-              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, color: colors.accent }}>Data Grid</h3>
-                <button
-                  onClick={addRow}
-                  style={{
-                    background: colors.accent,
-                    color: colors.white,
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '8px 16px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600'
-                  }}
-                >
-                  <Plus size={16} /> Add Row
-                </button>
-              </div>
-              <div style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ 
-                        background: colors.accent, 
-                        color: colors.white, 
-                        padding: '12px',
-                        textAlign: 'left',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 10
-                      }}>
-                        #
-                      </th>
-                      {headers.map((header, i) => (
-                        <th key={i} style={{ 
-                          background: colors.accent, 
-                          color: colors.white, 
-                          padding: '12px',
-                          textAlign: 'left',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          position: 'sticky',
-                          top: 0,
-                          zIndex: 10,
-                          minWidth: '150px'
-                        }}>
-                          {header}
-                        </th>
-                      ))}
-                      <th style={{ 
-                        background: colors.accent, 
-                        color: colors.white, 
-                        padding: '12px',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 10
-                      }}>
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredData.map((row, rowIndex) => (
-                      <tr key={rowIndex} style={{ 
-                        background: rowIndex % 2 === 0 ? colors.bg : colors.white,
-                        transition: 'all 0.3s'
-                      }}>
-                        <td style={{ padding: '12px', fontWeight: '600', color: colors.accent }}>
-                          {rowIndex + 1}
-                        </td>
-                        {headers.map((header, colIndex) => {
-                          const cellKey = `${rowIndex}-${header}`;
-                          const suggestions = aiSuggestions[cellKey];
-                          
-                          return (
-                            <td key={colIndex} style={{ padding: '8px', position: 'relative' }}>
-                              <input
-                                type="text"
-                                value={row[header] || ''}
-                                onChange={(e) => handleCellChange(rowIndex, header, e.target.value)}
-                                onFocus={() => {
-                                  setActiveCell(cellKey);
-                                  if (isNumericField(header)) {
-                                    generateAiSuggestions(header, rowIndex);
-                                  }
-                                }}
-                                onBlur={() => setTimeout(() => setActiveCell(null), 200)}
-                                style={{
-                                  width: '100%',
-                                  padding: '10px',
-                                  borderRadius: '8px',
-                                  border: `2px solid ${colors.secondary}`,
-                                  fontSize: '14px',
-                                  transition: 'all 0.3s',
-                                  background: colors.white
-                                }}
-                              />
-                              {activeCell === cellKey && suggestions && suggestions.length > 0 && (
-                                <div style={{
-                                  position: 'absolute',
-                                  top: '100%',
-                                  left: '8px',
-                                  background: colors.white,
-                                  border: `2px solid ${colors.accent}`,
-                                  borderRadius: '8px',
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                  zIndex: 1000,
-                                  marginTop: '4px',
-                                  minWidth: '120px'
-                                }}>
-                                  <div style={{ 
-                                    padding: '8px', 
-                                    fontSize: '12px', 
-                                    fontWeight: '600',
-                                    color: colors.accent,
-                                    borderBottom: `1px solid ${colors.secondary}`,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '4px'
-                                  }}>
-                                    <Brain size={14} /> AI Suggestions
-                                  </div>
-                                  {suggestions.map((suggestion, i) => (
-                                    <div
-                                      key={i}
-                                      onClick={() => {
-                                        handleCellChange(rowIndex, header, suggestion.toString());
-                                        setActiveCell(null);
-                                      }}
-                                      style={{
-                                        padding: '8px 12px',
-                                        cursor: 'pointer',
-                                        fontSize: '14px',
-                                        transition: 'all 0.2s',
-                                        borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.bg}` : 'none'
-                                      }}
-                                      onMouseOver={e => e.target.style.background = colors.bg}
-                                      onMouseOut={e => e.target.style.background = 'transparent'}
-                                    >
-                                      {suggestion}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                        <td style={{ padding: '8px' }}>
-                          <button
-                            onClick={() => deleteRow(rowIndex)}
-                            style={{
-                              background: '#e74c3c',
-                              color: colors.white,
-                              border: 'none',
-                              borderRadius: '8px',
-                              padding: '8px',
-                              cursor: 'pointer',
-                              transition: 'all 0.3s'
-                            }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, color: colors.accent }}>Data Grid</h3>
+            <button onClick={addRow} style={{
+                background: colors.accent,
+                color: colors.white,
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 16px',
+                cursor: 'pointer',
+                display: 'flex',
                 alignItems: 'center',
-                marginBottom: '24px'
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: '600'
               }}>
-                <h3 style={{ margin: 0, color: colors.accent }}>Card View</h3>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <button
-                    onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
-                    disabled={currentCardIndex === 0}
-                    style={{
-                      background: colors.accent,
-                      color: colors.white,
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '8px',
-                      cursor: currentCardIndex > 0 ? 'pointer' : 'not-allowed',
-                      opacity: currentCardIndex > 0 ? 1 : 0.5
-                    }}
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: colors.text }}>
-                    {currentCardIndex + 1} / {filteredData.length}
-                  </span>
-                  <button
-                    onClick={() => setCurrentCardIndex(Math.min(filteredData.length - 1, currentCardIndex + 1))}
-                    disabled={currentCardIndex === filteredData.length - 1}
-                    style={{
-                      background: colors.accent,
-                      color: colors.white,
-                      border: 'none',
-                      borderRadius: '8px',
-                      padding: '8px',
-                      cursor: currentCardIndex < filteredData.length - 1 ? 'pointer' : 'not-allowed',
-                      opacity: currentCardIndex < filteredData.length - 1 ? 1 : 0.5
-                    }}
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                </div>
-              </div>
-              
-              {filteredData[currentCardIndex] && (
-                <div style={{
-                  background: colors.bg,
-                  borderRadius: '12px',
-                  padding: '24px',
-                  border: `2px solid ${colors.secondary}`
-                }}>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                    gap: '20px'
+              <Plus size={16} /> Add Row
+            </button>
+          </div>
+          <div style={{ overflowX: 'auto', maxHeight: '600px', overflowY: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+              <thead>
+                <tr>
+                  <th style={{ 
+                    background: colors.accent, 
+                    color: colors.white, 
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}>#</th>
+                  {headers.map((header, i) => (
+                    <th key={i} style={{ 
+                      background: colors.accent, 
+                      color: colors.white, 
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      position: 'sticky',
+                      top: 0,
+                      zIndex: 10,
+                      minWidth: '150px'
+                    }}>{header}</th>
+                  ))}
+                  <th style={{ 
+                    background: colors.accent, 
+                    color: colors.white, 
+                    padding: '12px',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.map((row, rowIndex) => (
+                  <tr key={rowIndex} style={{ 
+                    background: rowIndex % 2 === 0 ? colors.bg : colors.white
                   }}>
-                    {headers.map((header, i) => {
-                      const cellKey = `${currentCardIndex}-${header}`;
+                    <td style={{ padding: '12px', fontWeight: '600', color: colors.accent }}>
+                      {rowIndex + 1}
+                    </td>
+                    {headers.map((header, colIndex) => {
+                      const cellKey = `${rowIndex}-${header}`;
                       const suggestions = aiSuggestions[cellKey];
                       
                       return (
-                        <div key={i} style={{ position: 'relative' }}>
-                          <label style={{
-                            display: 'block',
-                            marginBottom: '8px',
-                            fontSize: '14px',
-                            fontWeight: '600',
-                            color: colors.accent
-                          }}>
-                            {header}
-                          </label>
+                        <td key={colIndex} style={{ padding: '8px', position: 'relative' }}>
                           <input
                             type="text"
-                            value={filteredData[currentCardIndex][header] || ''}
-                            onChange={(e) => {
-                              const actualIndex = data.findIndex(row => 
-                                JSON.stringify(row) === JSON.stringify(filteredData[currentCardIndex])
-                              );
-                              handleCellChange(actualIndex, header, e.target.value);
-                            }}
+                            value={row[header] || ''}
+                            onChange={(e) => handleCellChange(rowIndex, header, e.target.value)}
                             onFocus={() => {
                               setActiveCell(cellKey);
                               if (isNumericField(header)) {
-                                generateAiSuggestions(header, currentCardIndex);
+                                generateAiSuggestions(header, rowIndex, data);
                               }
                             }}
                             onBlur={() => setTimeout(() => setActiveCell(null), 200)}
                             style={{
                               width: '100%',
-                              padding: '12px',
+                              padding: '10px',
                               borderRadius: '8px',
                               border: `2px solid ${colors.secondary}`,
-                              fontSize: '16px',
-                              transition: 'all 0.3s',
+                              fontSize: '14px',
                               background: colors.white
                             }}
                           />
@@ -813,7 +629,7 @@ const ExcelDashboard = () => {
                             <div style={{
                               position: 'absolute',
                               top: '100%',
-                              left: '0',
+                              left: '8px',
                               background: colors.white,
                               border: `2px solid ${colors.accent}`,
                               borderRadius: '8px',
@@ -834,96 +650,207 @@ const ExcelDashboard = () => {
                               }}>
                                 <Brain size={14} /> AI Suggestions
                               </div>
-                              {suggestions.map((suggestion, idx) => (
+                              {suggestions.map((suggestion, i) => (
                                 <div
-                                  key={idx}
+                                  key={i}
                                   onClick={() => {
-                                    const actualIndex = data.findIndex(row => 
-                                      JSON.stringify(row) === JSON.stringify(filteredData[currentCardIndex])
-                                    );
-                                    handleCellChange(actualIndex, header, suggestion.toString());
+                                    handleCellChange(rowIndex, header, suggestion.toString());
                                     setActiveCell(null);
                                   }}
                                   style={{
                                     padding: '8px 12px',
                                     cursor: 'pointer',
                                     fontSize: '14px',
-                                    transition: 'all 0.2s',
-                                    borderBottom: idx < suggestions.length - 1 ? `1px solid ${colors.bg}` : 'none'
+                                    borderBottom: i < suggestions.length - 1 ? `1px solid ${colors.bg}` : 'none'
                                   }}
-                                  onMouseOver={e => e.target.style.background = colors.bg}
-                                  onMouseOut={e => e.target.style.background = 'transparent'}
+                                  onMouseOver={e => e.currentTarget.style.background = colors.bg}
+                                  onMouseOut={e => e.currentTarget.style.background = 'transparent'}
                                 >
                                   {suggestion}
                                 </div>
                               ))}
                             </div>
                           )}
-                        </div>
+                        </td>
                       );
                     })}
-                  </div>
-                  
-                  <div style={{ 
-                    marginTop: '24px',
-                    display: 'flex',
-                    gap: '12px',
-                    justifyContent: 'flex-end'
-                  }}>
-                    <button
-                      onClick={() => {
+                    <td style={{ padding: '8px' }}>
+                      <button
+                        onClick={() => deleteRow(rowIndex)}
+                        style={{
+                          background: '#e74c3c',
+                          color: colors.white,
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '8px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Card View */}
+      {data.length > 0 && viewMode === 'card' && (
+        <div style={{
+          background: colors.white,
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.08)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: '24px'
+          }}>
+            <h3 style={{ margin: 0, color: colors.accent }}>Card View</h3>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <button
+                onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
+                disabled={currentCardIndex === 0}
+                style={{
+                  background: colors.accent,
+                  color: colors.white,
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  cursor: currentCardIndex > 0 ? 'pointer' : 'not-allowed',
+                  opacity: currentCardIndex > 0 ? 1 : 0.5
+                }}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <span style={{ fontSize: '14px', fontWeight: '600', color: colors.text }}>
+                {currentCardIndex + 1} / {filteredData.length}
+              </span>
+              <button
+                onClick={() => setCurrentCardIndex(Math.min(filteredData.length - 1, currentCardIndex + 1))}
+                disabled={currentCardIndex === filteredData.length - 1}
+                style={{
+                  background: colors.accent,
+                  color: colors.white,
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  cursor: currentCardIndex < filteredData.length - 1 ? 'pointer' : 'not-allowed',
+                  opacity: currentCardIndex < filteredData.length - 1 ? 1 : 0.5
+                }}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
+          </div>
+          
+          {filteredData[currentCardIndex] && (
+            <div style={{
+              background: colors.bg,
+              borderRadius: '12px',
+              padding: '24px',
+              border: `2px solid ${colors.secondary}`
+            }}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                gap: '20px'
+              }}>
+                {headers.map((header, i) => (
+                  <div key={i}>
+                    <label style={{
+                      display: 'block',
+                      marginBottom: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: colors.accent
+                    }}>
+                      {header}
+                    </label>
+                    <input
+                      type="text"
+                      value={filteredData[currentCardIndex][header] || ''}
+                      onChange={(e) => {
                         const actualIndex = data.findIndex(row => 
                           JSON.stringify(row) === JSON.stringify(filteredData[currentCardIndex])
                         );
-                        deleteRow(actualIndex);
-                        setCurrentCardIndex(Math.max(0, currentCardIndex - 1));
+                        handleCellChange(actualIndex, header, e.target.value);
                       }}
                       style={{
-                        background: '#e74c3c',
-                        color: colors.white,
-                        border: 'none',
+                        width: '100%',
+                        padding: '12px',
                         borderRadius: '8px',
-                        padding: '10px 20px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600'
+                        border: `2px solid ${colors.secondary}`,
+                        fontSize: '16px',
+                        background: colors.white
                       }}
-                    >
-                      <Trash2 size={16} /> Delete Row
-                    </button>
+                    />
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
               
-              <div style={{ marginTop: '20px', textAlign: 'center' }}>
+              <div style={{ 
+                marginTop: '24px',
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end'
+              }}>
                 <button
                   onClick={() => {
-                    addRow();
-                    setCurrentCardIndex(data.length);
+                    const actualIndex = data.findIndex(row => 
+                      JSON.stringify(row) === JSON.stringify(filteredData[currentCardIndex])
+                    );
+                    deleteRow(actualIndex);
+                    setCurrentCardIndex(Math.max(0, currentCardIndex - 1));
                   }}
                   style={{
-                    background: colors.accent,
+                    background: '#e74c3c',
                     color: colors.white,
                     border: 'none',
                     borderRadius: '8px',
-                    padding: '12px 24px',
+                    padding: '10px 20px',
                     cursor: 'pointer',
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                     fontSize: '14px',
-                    fontWeight: '600',
-                    transition: 'all 0.3s'
+                    fontWeight: '600'
                   }}
                 >
-                  <Plus size={18} /> Add New Row
+                  <Trash2 size={16} /> Delete Row
                 </button>
               </div>
-            </>
+            </div>
           )}
+          
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <button
+              onClick={() => {
+                addRow();
+                setCurrentCardIndex(data.length);
+              }}
+              style={{
+                background: colors.accent,
+                color: colors.white,
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px 24px',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}
+            >
+              <Plus size={18} /> Add New Row
+            </button>
+          </div>
         </div>
       )}
       
@@ -960,24 +887,26 @@ const ExcelDashboard = () => {
       )}
       
       {/* Auto-save indicator */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        background: colors.accent,
-        color: colors.white,
-        padding: '12px 20px',
-        borderRadius: '12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        fontSize: '14px',
-        fontWeight: '600',
-        animation: 'fadeIn 0.3s'
-      }}>
-        <Save size={16} /> Auto-saving...
-      </div>
+      {isClient && data.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: colors.accent,
+          color: colors.white,
+          padding: '12px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          fontSize: '14px',
+          fontWeight: '600',
+          opacity: 0.9
+        }}>
+          <Save size={16} /> Auto-saving...
+        </div>
+      )}
       
       <style>{`
         @keyframes fadeIn {
