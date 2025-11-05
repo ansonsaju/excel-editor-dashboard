@@ -1,5 +1,4 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm install && npm run build"
@@ -10,35 +9,3 @@
     "restartPolicyMaxRetries": 10
   }
 }
-```
-
-### **7. `.gitignore`** (Root folder)
-```
-# Dependencies
-node_modules/
-/.pnp
-.pnp.js
-
-# Testing
-/coverage
-
-# Production
-/build
-
-# Misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
