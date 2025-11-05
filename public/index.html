@@ -3,203 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Editor Pro - Professional Dashboard</title>
+    <title>Excel Editor Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .animate-fadeIn {
-            animation: fadeIn 0.5s ease-out;
-        }
-        
-        .animate-slideIn {
-            animation: slideIn 0.5s ease-out;
-        }
-
-        .animate-slideUp {
-            animation: slideUp 0.3s ease-out;
-        }
-
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: #60A7BD #E1EBED;
-        }
-
-        *::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        *::-webkit-scrollbar-track {
-            background: #E1EBED;
-        }
-
-        *::-webkit-scrollbar-thumb {
-            background-color: #60A7BD;
-            border-radius: 4px;
-        }
-
-        .suggestion-item:hover {
-            background-color: #E1EBED;
-        }
-
-        .card-mode-active {
-            display: block;
-        }
-
-        .table-mode-active {
-            display: block;
-        }
-
-        .filter-dropdown {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            opacity: 1;
-        }
-
-        .gradient-bg {
-            background: linear-gradient(135deg, #E1EBED 0%, #8CC0CE 50%, #60A7BD 100%);
-        }
-
-        .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #60A7BD 0%, #8CC0CE 100%);
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(96, 167, 189, 0.3);
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #8CC0CE 0%, #E1EBED 100%);
-            color: #2C5F6F;
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #60A7BD 0%, #8CC0CE 100%);
-            color: white;
-        }
+        .gradient-bg { background: linear-gradient(135deg, #E1EBED 0%, #8CC0CE 50%, #60A7BD 100%); }
+        .glass-effect { background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px); }
+        .btn-primary { background: linear-gradient(135deg, #60A7BD 0%, #8CC0CE 100%); transition: all 0.3s; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(96, 167, 189, 0.3); }
+        .btn-secondary { background: linear-gradient(135deg, #8CC0CE 0%, #E1EBED 100%); color: #2C5F6F; }
+        .btn-secondary:hover:not(:disabled) { background: linear-gradient(135deg, #60A7BD 0%, #8CC0CE 100%); color: white; }
+        .view-toggle { display: inline-flex; background: white; border-radius: 12px; padding: 4px; box-shadow: 0 2px 8px rgba(96, 167, 189, 0.15); }
+        .view-toggle button { padding: 8px 20px; border-radius: 8px; transition: all 0.2s; font-weight: 500; background: transparent; color: #60A7BD; border: none; }
+        .view-toggle button.active { background: linear-gradient(135deg, #60A7BD 0%, #8CC0CE 100%); color: white; box-shadow: 0 2px 8px rgba(96, 167, 189, 0.3); }
+        .suggestion-item { padding: 10px 12px; cursor: pointer; transition: all 0.15s; border-bottom: 1px solid #E1EBED; display: flex; justify-content: space-between; align-items: center; }
+        .suggestion-item:last-child { border-bottom: none; }
+        .suggestion-item:hover { background: #E1EBED; padding-left: 16px; }
+        .suggestion-badge { font-size: 10px; padding: 2px 8px; border-radius: 12px; background: #8CC0CE; color: white; }
+        .cell-input:focus { outline: none; border-color: #60A7BD; box-shadow: 0 0 0 3px rgba(96, 167, 189, 0.1); }
+        * { scrollbar-width: thin; scrollbar-color: #60A7BD #E1EBED; }
+        *::-webkit-scrollbar { width: 8px; height: 8px; }
+        *::-webkit-scrollbar-track { background: #E1EBED; }
+        *::-webkit-scrollbar-thumb { background-color: #60A7BD; border-radius: 4px; }
+        thead th { position: sticky; top: 0; z-index: 10; }
     </style>
 </head>
 <body>
-    <div class="min-h-screen gradient-bg p-6">
+    <div class="min-h-screen gradient-bg p-4 md:p-6">
         <div class="max-w-7xl mx-auto">
-            <!-- Header Section -->
-            <div class="glass-effect rounded-2xl shadow-2xl p-6 mb-6 animate-fadeIn">
-                <div class="flex items-center justify-between mb-6">
+            <div class="glass-effect rounded-2xl shadow-2xl p-4 md:p-6 mb-4 md:mb-6">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4 md:mb-6">
                     <div>
-                        <h1 class="text-4xl font-bold text-[#2C5F6F] mb-2">Excel Editor Pro</h1>
-                        <p class="text-[#60A7BD] text-sm">Professional Data Management System</p>
+                        <h1 class="text-2xl md:text-4xl font-bold text-[#2C5F6F] mb-1">Excel Editor Pro</h1>
+                        <p class="text-[#60A7BD] text-xs md:text-sm">Professional Data Management System</p>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3 md:gap-4 flex-wrap">
                         <label class="flex items-center gap-2 text-sm text-[#2C5F6F] font-medium cursor-pointer">
-                            <input type="checkbox" id="autoSave" checked class="rounded border-[#8CC0CE] text-[#60A7BD] focus:ring-[#60A7BD]">
+                            <input type="checkbox" id="autoSave" checked class="rounded">
                             <span>Auto-save</span>
                         </label>
-                        <div class="h-8 w-px bg-[#8CC0CE]"></div>
-                        <label class="flex items-center gap-2 text-sm text-[#2C5F6F] font-medium cursor-pointer">
-                            <input type="checkbox" id="viewMode" class="rounded border-[#8CC0CE] text-[#60A7BD] focus:ring-[#60A7BD]">
-                            <span>Card View</span>
-                        </label>
+                        <div class="view-toggle">
+                            <button id="tableViewBtn" class="active">
+                                <svg class="inline-block" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                                </svg>
+                                <span class="ml-2 hidden sm:inline">Table</span>
+                            </button>
+                            <button id="cardViewBtn">
+                                <svg class="inline-block" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <rect x="2" y="3" width="20" height="18" rx="2"/>
+                                    <line x1="2" y1="9" x2="22" y2="9"/>
+                                </svg>
+                                <span class="ml-2 hidden sm:inline">Card</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="flex flex-wrap gap-3">
-                    <button id="uploadBtn" class="btn-primary text-white px-6 py-3 rounded-lg shadow-lg font-medium">
-                        <svg class="inline-block mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div class="flex flex-wrap gap-2 md:gap-3">
+                    <button id="uploadBtn" class="btn-primary text-white px-4 md:px-6 py-2 md:py-3 rounded-lg shadow-lg font-medium text-sm">
+                        <svg class="inline-block mr-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                        </svg>
-                        Upload Excel
+                        </svg>Upload
                     </button>
                     <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-                    
-                    <button id="downloadBtn" class="btn-secondary px-6 py-3 rounded-lg shadow-lg font-medium" disabled>
-                        <svg class="inline-block mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <button id="downloadBtn" class="btn-secondary px-4 md:px-6 py-2 md:py-3 rounded-lg shadow-lg font-medium text-sm" disabled>
+                        <svg class="inline-block mr-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>
-                        Download
+                        </svg>Download
                     </button>
-                    
-                    <button id="undoBtn" class="bg-white text-[#60A7BD] px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all font-medium border-2 border-[#E1EBED]" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <button id="undoBtn" class="bg-white text-[#60A7BD] px-3 py-2 rounded-lg shadow-md border-2 border-[#E1EBED]" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-9 9"/>
                         </svg>
                     </button>
-                    
-                    <button id="redoBtn" class="bg-white text-[#60A7BD] px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all font-medium border-2 border-[#E1EBED]" disabled>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <button id="redoBtn" class="bg-white text-[#60A7BD] px-3 py-2 rounded-lg shadow-md border-2 border-[#E1EBED]" disabled>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 7v6h-6M3 17a9 9 0 019-9 9 9 0 019 9"/>
                         </svg>
                     </button>
-                    
-                    <button id="addRowBtn" class="btn-primary text-white px-6 py-3 rounded-lg shadow-lg font-medium" disabled>
-                        <svg class="inline-block mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <button id="addRowBtn" class="btn-primary text-white px-4 py-2 rounded-lg shadow-lg font-medium text-sm" disabled>
+                        <svg class="inline-block mr-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Row
+                        </svg>Add Row
                     </button>
-                    
-                    <button id="historyBtn" class="bg-white text-[#60A7BD] px-6 py-3 rounded-lg shadow-md hover:shadow-lg transition-all font-medium border-2 border-[#E1EBED]">
-                        <svg class="inline-block mr-2" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <button id="historyBtn" class="bg-white text-[#60A7BD] px-4 py-2 rounded-lg shadow-md border-2 border-[#E1EBED] font-medium text-sm">
+                        <svg class="inline-block mr-1" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
-                        </svg>
-                        History
+                        </svg>History
                     </button>
                 </div>
             </div>
-
-            <!-- Sheets Navigation -->
-            <div id="sheetsNav" class="hidden glass-effect rounded-xl shadow-lg p-4 mb-6 animate-slideIn">
+            <div id="sheetsNav" class="hidden glass-effect rounded-xl shadow-lg p-3 mb-4">
                 <div id="sheetButtons" class="flex gap-2 overflow-x-auto"></div>
             </div>
-
-            <!-- Search and Filter Section -->
-            <div id="filterSection" class="hidden glass-effect rounded-xl shadow-lg p-6 mb-6 animate-slideIn">
+            <div id="filterSection" class="hidden glass-effect rounded-xl shadow-lg p-4 mb-4">
                 <div class="mb-4">
                     <div class="relative">
-                        <svg class="absolute left-4 top-4 text-[#60A7BD]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg class="absolute left-3 top-3 text-[#60A7BD]" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                         </svg>
-                        <input type="text" id="globalSearch" placeholder="Search across all columns..." 
-                            class="w-full pl-12 pr-4 py-3 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none transition-all">
+                        <input type="text" id="globalSearch" placeholder="Search across all columns..." class="w-full pl-10 pr-4 py-2 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none text-sm">
                     </div>
                 </div>
-                
-                <div id="filterContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+                <div id="filterContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
             </div>
-
-            <!-- History Panel -->
-            <div id="historyPanel" class="hidden glass-effect rounded-xl shadow-lg p-6 mb-6 animate-slideUp">
-                <h3 class="text-xl font-bold text-[#2C5F6F] mb-4">Recent Changes</h3>
+            <div id="historyPanel" class="hidden glass-effect rounded-xl shadow-lg p-4 mb-4">
+                <h3 class="text-lg font-bold text-[#2C5F6F] mb-4">Recent Changes</h3>
                 <div id="historyList" class="space-y-2 max-h-60 overflow-y-auto"></div>
             </div>
-
-            <!-- Table View -->
-            <div id="tableView" class="hidden glass-effect rounded-xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div id="tableView" class="hidden glass-effect rounded-xl shadow-2xl overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full" id="dataTable">
                         <thead class="bg-gradient-to-r from-[#60A7BD] to-[#8CC0CE] text-white">
@@ -209,605 +122,426 @@
                     </table>
                 </div>
             </div>
-
-            <!-- Card View -->
-            <div id="cardView" class="hidden space-y-4 animate-fadeIn">
-                <div class="flex justify-between items-center glass-effect rounded-xl p-4 shadow-lg">
-                    <div class="text-[#2C5F6F] font-semibold">
+            <div id="cardView" class="hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 glass-effect rounded-xl p-4 shadow-lg mb-4">
+                    <div class="text-[#2C5F6F] font-semibold text-sm">
                         <span id="cardCounter">Card 1 of 0</span>
                     </div>
-                    <div class="flex gap-2">
-                        <button id="prevCard" class="bg-white text-[#60A7BD] px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all font-medium border-2 border-[#E1EBED]">
-                            Previous
-                        </button>
-                        <button id="nextCard" class="btn-primary text-white px-4 py-2 rounded-lg shadow-lg font-medium">
-                            Next
-                        </button>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button id="prevCard" class="flex-1 sm:flex-none bg-white text-[#60A7BD] px-4 py-2 rounded-lg shadow-md border-2 border-[#E1EBED] text-sm">Previous</button>
+                        <button id="deleteCardBtn" class="flex-1 sm:flex-none bg-red-500 text-white px-4 py-2 rounded-lg shadow-md hover:bg-red-600 text-sm">Delete</button>
+                        <button id="nextCard" class="flex-1 sm:flex-none btn-primary text-white px-4 py-2 rounded-lg shadow-lg text-sm">Next</button>
                     </div>
                 </div>
-                <div id="cardContainer" class="glass-effect rounded-xl shadow-2xl p-8"></div>
+                <div id="cardContainer" class="glass-effect rounded-xl shadow-2xl p-4 md:p-8"></div>
             </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="glass-effect rounded-xl shadow-2xl p-12 text-center animate-fadeIn">
-                <svg class="mx-auto text-[#8CC0CE] mb-6" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <div id="emptyState" class="glass-effect rounded-xl shadow-2xl p-8 text-center">
+                <svg class="mx-auto text-[#8CC0CE] mb-4" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                 </svg>
-                <h2 class="text-3xl font-bold text-[#2C5F6F] mb-3">No Data Yet</h2>
-                <p class="text-[#60A7BD] mb-6 text-lg">Upload an Excel file to get started with data management</p>
-                <button id="emptyStateBtn" class="btn-primary text-white px-8 py-4 rounded-lg shadow-lg text-lg font-medium">
-                    Choose File
-                </button>
+                <h2 class="text-2xl font-bold text-[#2C5F6F] mb-2">No Data Yet</h2>
+                <p class="text-[#60A7BD] mb-4 text-base">Upload an Excel file to get started</p>
+                <button id="emptyStateBtn" class="btn-primary text-white px-6 py-3 rounded-lg shadow-lg font-medium">Choose File</button>
             </div>
         </div>
     </div>
-
     <script>
-        // State Management
-        let workbook = null;
-        let sheets = [];
-        let activeSheet = 0;
-        let data = [];
-        let headers = [];
-        let history = [];
-        let historyIndex = -1;
-        let filters = {};
-        let searchTerm = '';
-        let currentCardIndex = 0;
-        let isCardView = false;
-        let autoSaveEnabled = true;
-
-        // AI-powered number suggestions based on column patterns
-        const numberSuggestions = {};
-
-        // DOM Elements
-        const fileInput = document.getElementById('fileInput');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const undoBtn = document.getElementById('undoBtn');
-        const redoBtn = document.getElementById('redoBtn');
-        const addRowBtn = document.getElementById('addRowBtn');
-        const historyBtn = document.getElementById('historyBtn');
-        const viewModeCheckbox = document.getElementById('viewMode');
-        const autoSaveCheckbox = document.getElementById('autoSave');
-        const globalSearch = document.getElementById('globalSearch');
-        const emptyState = document.getElementById('emptyState');
-        const tableView = document.getElementById('tableView');
-        const cardView = document.getElementById('cardView');
-        const sheetsNav = document.getElementById('sheetsNav');
-        const filterSection = document.getElementById('filterSection');
-        const historyPanel = document.getElementById('historyPanel');
-
-        // Initialize
-        loadFromStorage();
-
-        // Event Listeners
-        uploadBtn.addEventListener('click', () => fileInput.click());
-        document.getElementById('emptyStateBtn').addEventListener('click', () => fileInput.click());
-        fileInput.addEventListener('change', handleFileUpload);
-        downloadBtn.addEventListener('click', handleDownload);
-        undoBtn.addEventListener('click', undo);
-        redoBtn.addEventListener('click', redo);
-        addRowBtn.addEventListener('click', addRow);
-        historyBtn.addEventListener('click', toggleHistory);
-        viewModeCheckbox.addEventListener('change', toggleViewMode);
-        autoSaveCheckbox.addEventListener('change', (e) => {
-            autoSaveEnabled = e.target.checked;
-        });
-        globalSearch.addEventListener('input', (e) => {
-            searchTerm = e.target.value;
-            renderData();
-        });
-        document.getElementById('prevCard').addEventListener('click', () => navigateCard(-1));
-        document.getElementById('nextCard').addEventListener('click', () => navigateCard(1));
-
-        // File Upload Handler
-        async function handleFileUpload(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                workbook = XLSX.read(arrayBuffer);
-                sheets = workbook.SheetNames;
-                
-                if (sheets.length > 0) {
-                    loadSheet(0);
-                    renderSheetButtons();
-                    updateUI();
-                }
-            } catch (error) {
-                console.error('Error loading file:', error);
-                alert('Error loading Excel file. Please try again.');
-            }
+        let workbook=null,sheets=[],activeSheet=0,data=[],headers=[],history=[],historyIndex=-1,filters={},searchTerm='',currentCardIndex=0,isCardView=false,autoSaveEnabled=true,numberSuggestions={},saveTimeout=null;
+        const els={fileInput:document.getElementById('fileInput'),uploadBtn:document.getElementById('uploadBtn'),downloadBtn:document.getElementById('downloadBtn'),undoBtn:document.getElementById('undoBtn'),redoBtn:document.getElementById('redoBtn'),addRowBtn:document.getElementById('addRowBtn'),historyBtn:document.getElementById('historyBtn'),tableViewBtn:document.getElementById('tableViewBtn'),cardViewBtn:document.getElementById('cardViewBtn'),autoSaveCheckbox:document.getElementById('autoSave'),globalSearch:document.getElementById('globalSearch'),emptyState:document.getElementById('emptyState'),tableView:document.getElementById('tableView'),cardView:document.getElementById('cardView'),sheetsNav:document.getElementById('sheetsNav'),filterSection:document.getElementById('filterSection'),historyPanel:document.getElementById('historyPanel'),prevCard:document.getElementById('prevCard'),nextCard:document.getElementById('nextCard'),deleteCard:document.getElementById('deleteCardBtn')};
+        
+        document.addEventListener('DOMContentLoaded',()=>loadFromStorage());
+        els.uploadBtn.addEventListener('click',()=>els.fileInput.click());
+        document.getElementById('emptyStateBtn').addEventListener('click',()=>els.fileInput.click());
+        els.fileInput.addEventListener('change',handleFileUpload);
+        els.downloadBtn.addEventListener('click',handleDownload);
+        els.undoBtn.addEventListener('click',undo);
+        els.redoBtn.addEventListener('click',redo);
+        els.addRowBtn.addEventListener('click',addRow);
+        els.historyBtn.addEventListener('click',toggleHistory);
+        els.tableViewBtn.addEventListener('click',()=>setViewMode(false));
+        els.cardViewBtn.addEventListener('click',()=>setViewMode(true));
+        els.autoSaveCheckbox.addEventListener('change',e=>autoSaveEnabled=e.target.checked);
+        els.globalSearch.addEventListener('input',e=>{searchTerm=e.target.value;renderData();});
+        els.prevCard.addEventListener('click',()=>navigateCard(-1));
+        els.nextCard.addEventListener('click',()=>navigateCard(1));
+        els.deleteCard.addEventListener('click',deleteCurrentCard);
+        
+        async function handleFileUpload(e){
+            const file=e.target.files[0];
+            if(!file)return;
+            try{
+                const arrayBuffer=await file.arrayBuffer();
+                workbook=XLSX.read(arrayBuffer);
+                sheets=workbook.SheetNames;
+                if(sheets.length>0){loadSheet(0);renderSheetButtons();updateUI();}
+            }catch(error){console.error('Error:',error);alert('Error loading Excel file');}
         }
-
-        // Load Sheet
-        function loadSheet(index) {
-            const wsname = sheets[index];
-            const ws = workbook.Sheets[wsname];
-            const jsonData = XLSX.utils.sheet_to_json(ws, { defval: '' });
-            
-            if (jsonData.length > 0) {
-                headers = Object.keys(jsonData[0]);
-                data = jsonData;
-                activeSheet = index;
-                addToHistory(JSON.parse(JSON.stringify(data)));
-                filters = {};
-                searchTerm = '';
-                currentCardIndex = 0;
+        
+        function loadSheet(index){
+            const ws=workbook.Sheets[sheets[index]];
+            const jsonData=XLSX.utils.sheet_to_json(ws,{defval:''});
+            if(jsonData.length>0){
+                headers=Object.keys(jsonData[0]);
+                data=jsonData;
+                activeSheet=index;
+                history=[JSON.parse(JSON.stringify(data))];
+                historyIndex=0;
+                filters={};
+                searchTerm='';
+                currentCardIndex=0;
                 analyzeDataForSuggestions();
                 renderData();
                 renderFilters();
-                saveToStorage();
+                debouncedSave();
             }
         }
-
-        // Analyze data for AI suggestions
-        function analyzeDataForSuggestions() {
-            headers.forEach(header => {
-                const values = data.map(row => row[header]).filter(v => v !== '' && !isNaN(v));
-                if (values.length > 0) {
-                    const numValues = values.map(Number);
-                    numberSuggestions[header] = {
-                        min: Math.min(...numValues),
-                        max: Math.max(...numValues),
-                        avg: numValues.reduce((a, b) => a + b, 0) / numValues.length,
-                        recent: numValues.slice(-5)
+        
+        function analyzeDataForSuggestions(){
+            numberSuggestions={};
+            headers.forEach(header=>{
+                const values=data.map(row=>row[header]).filter(v=>v!==''&&!isNaN(v));
+                if(values.length>0){
+                    const numValues=values.map(Number);
+                    numberSuggestions[header]={
+                        min:Math.min(...numValues),
+                        max:Math.max(...numValues),
+                        avg:numValues.reduce((a,b)=>a+b,0)/numValues.length,
+                        recent:numValues.slice(-5),
+                        common:getMostCommon(numValues)
                     };
                 }
             });
         }
-
-        // Generate AI suggestions
-        function generateSuggestions(header, currentValue) {
-            if (!numberSuggestions[header]) return [];
-            
-            const { min, max, avg, recent } = numberSuggestions[header];
-            const suggestions = new Set();
-            
-            // Add recent values
-            recent.forEach(v => suggestions.add(Math.round(v)));
-            
-            // Add average and nearby values
-            suggestions.add(Math.round(avg));
-            suggestions.add(Math.round(avg * 0.9));
-            suggestions.add(Math.round(avg * 1.1));
-            
-            // Add range-based suggestions
-            const step = (max - min) / 10;
-            for (let i = 0; i <= 10; i++) {
-                suggestions.add(Math.round(min + step * i));
-            }
-            
-            // If current value exists, add nearby values
-            if (currentValue && !isNaN(currentValue)) {
-                const num = Number(currentValue);
-                for (let i = -5; i <= 5; i++) {
-                    if (i !== 0) suggestions.add(Math.round(num + i));
-                }
-            }
-            
-            return Array.from(suggestions).sort((a, b) => a - b).slice(0, 10);
+        
+        function getMostCommon(arr){
+            const freq={};
+            arr.forEach(v=>freq[v]=(freq[v]||0)+1);
+            return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([val])=>Number(val));
         }
-
-        // Render Sheet Buttons
-        function renderSheetButtons() {
-            const container = document.getElementById('sheetButtons');
-            container.innerHTML = sheets.map((sheet, idx) => `
-                <button onclick="handleSheetChange(${idx})" 
-                    class="px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                        activeSheet === idx 
-                            ? 'bg-gradient-to-r from-[#60A7BD] to-[#8CC0CE] text-white shadow-lg' 
-                            : 'bg-white text-[#60A7BD] hover:bg-[#E1EBED] border-2 border-[#E1EBED]'
-                    }">
-                    ${sheet}
-                </button>
+        
+        function generateSuggestions(header,currentValue){
+            if(!numberSuggestions[header])return[];
+            const {min,max,avg,recent,common}=numberSuggestions[header];
+            const suggestions=new Set();
+            common.forEach(v=>suggestions.add(Math.round(v)));
+            recent.forEach(v=>suggestions.add(Math.round(v)));
+            suggestions.add(Math.round(avg));
+            if(currentValue&&!isNaN(currentValue)&&currentValue!==''){
+                const num=Number(currentValue);
+                [-5,-3,-2,-1,1,2,3,5].forEach(offset=>{
+                    const val=num+offset;
+                    if(val>=min&&val<=max)suggestions.add(Math.round(val));
+                });
+            }
+            const step=Math.max(1,Math.round((max-min)/10));
+            for(let i=0;i<=10;i++)suggestions.add(Math.round(min+step*i));
+            return Array.from(suggestions).filter(v=>v>=min&&v<=max).sort((a,b)=>{
+                const aRecent=recent.includes(a),bRecent=recent.includes(b);
+                const aCommon=common.includes(a),bCommon=common.includes(b);
+                if(aCommon&&!bCommon)return-1;
+                if(!aCommon&&bCommon)return 1;
+                if(aRecent&&!bRecent)return-1;
+                if(!aRecent&&bRecent)return 1;
+                return a-b;
+            }).slice(0,12);
+        }
+        
+        function renderSheetButtons(){
+            document.getElementById('sheetButtons').innerHTML=sheets.map((sheet,idx)=>`
+                <button onclick="handleSheetChange(${idx})" class="px-4 py-2 rounded-lg font-medium whitespace-nowrap text-sm ${activeSheet===idx?'bg-gradient-to-r from-[#60A7BD] to-[#8CC0CE] text-white shadow-lg':'bg-white text-[#60A7BD] hover:bg-[#E1EBED] border-2 border-[#E1EBED]'}">${sheet}</button>
             `).join('');
         }
-
-        // Handle Sheet Change
-        function handleSheetChange(index) {
-            if (workbook) {
-                loadSheet(index);
-                renderSheetButtons();
-            }
-        }
-
-        // Render Filters
-        function renderFilters() {
-            const container = document.getElementById('filterContainer');
-            container.innerHTML = headers.map(header => {
-                const uniqueValues = [...new Set(data.map(row => row[header]))].filter(v => v !== '').sort();
-                return `
-                    <div class="relative">
-                        <label class="block text-sm font-medium text-[#2C5F6F] mb-2">${header}</label>
-                        <select onchange="handleFilterChange('${header}', this.value)" 
-                            class="w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none transition-all text-sm">
-                            <option value="">All</option>
-                            ${uniqueValues.map(val => `<option value="${val}">${val}</option>`).join('')}
-                        </select>
-                    </div>
-                `;
+        
+        function handleSheetChange(index){if(workbook){loadSheet(index);renderSheetButtons();}}
+        
+        function renderFilters(){
+            document.getElementById('filterContainer').innerHTML=headers.map(header=>{
+                const uniqueValues=[...new Set(data.map(row=>row[header]))].filter(v=>v!=='').sort();
+                return`<div><label class="block text-xs font-medium text-[#2C5F6F] mb-2">${header}</label><select onchange="handleFilterChange('${header}',this.value)" class="w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none text-xs"><option value="">All (${data.length})</option>${uniqueValues.slice(0,50).map(val=>`<option value="${val}">${val}</option>`).join('')}</select></div>`;
             }).join('');
         }
-
-        // Handle Filter Change
-        function handleFilterChange(header, value) {
-            if (value === '') {
-                delete filters[header];
-            } else {
-                filters[header] = value;
-            }
+        
+        function handleFilterChange(header,value){
+            if(value==='')delete filters[header];
+            else filters[header]=value;
+            currentCardIndex=0;
             renderData();
         }
-
-        // Get Filtered Data
-        function getFilteredData() {
-            return data.filter(row => {
-                const matchesFilters = Object.entries(filters).every(([key, value]) => {
-                    return String(row[key]) === String(value);
-                });
-                
-                const matchesSearch = searchTerm === '' || 
-                    Object.values(row).some(val => 
-                        String(val).toLowerCase().includes(searchTerm.toLowerCase())
-                    );
-                
-                return matchesFilters && matchesSearch;
+        
+        function getFilteredData(){
+            return data.filter(row=>{
+                const matchesFilters=Object.entries(filters).every(([key,value])=>String(row[key])===String(value));
+                const matchesSearch=searchTerm===''||Object.values(row).some(val=>String(val).toLowerCase().includes(searchTerm.toLowerCase()));
+                return matchesFilters&&matchesSearch;
             });
         }
-
-        // Render Data
-        function renderData() {
-            const filteredData = getFilteredData();
-            
-            if (isCardView) {
-                renderCardView(filteredData);
-            } else {
-                renderTableView(filteredData);
+        
+        function setViewMode(cardMode){
+            isCardView=cardMode;
+            if(cardMode){
+                els.tableViewBtn.classList.remove('active');
+                els.cardViewBtn.classList.add('active');
+                els.tableView.classList.add('hidden');
+                els.cardView.classList.remove('hidden');
+            }else{
+                els.cardViewBtn.classList.remove('active');
+                els.tableViewBtn.classList.add('active');
+                els.cardView.classList.add('hidden');
+                els.tableView.classList.remove('hidden');
             }
+            renderData();
+            debouncedSave();
         }
-
-        // Render Table View
-        function renderTableView(filteredData) {
-            const header = document.getElementById('tableHeader');
-            const body = document.getElementById('tableBody');
-            
-            header.innerHTML = `
-                <th class="px-4 py-4 text-left font-semibold">Actions</th>
-                ${headers.map(h => `<th class="px-4 py-4 text-left font-semibold whitespace-nowrap">${h}</th>`).join('')}
-            `;
-            
-            body.innerHTML = filteredData.map((row, idx) => {
-                const originalIndex = data.indexOf(row);
-                return `
-                    <tr class="border-b border-[#E1EBED] hover:bg-[#E1EBED] hover:bg-opacity-50 transition-all">
-                        <td class="px-4 py-3">
-                            <button onclick="deleteRow(${originalIndex})" 
-                                class="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                            </button>
-                        </td>
-                        ${headers.map(header => `
-                            <td class="px-4 py-3">
-                                <div class="relative group">
-                                    ${renderCellInput(originalIndex, header, row[header])}
-                                </div>
-                            </td>
-                        `).join('')}
-                    </tr>
-                `;
+        
+        function renderData(){
+            const filteredData=getFilteredData();
+            isCardView?renderCardView(filteredData):renderTableView(filteredData);
+        }
+        
+        function renderTableView(filteredData){
+            document.getElementById('tableHeader').innerHTML=`<th class="px-3 py-3 text-left font-semibold text-xs">Actions</th>${headers.map(h=>`<th class="px-3 py-3 text-left font-semibold text-xs" title="${h}"><div class="max-w-[120px] md:max-w-[200px] truncate">${h}</div></th>`).join('')}`;
+            document.getElementById('tableBody').innerHTML=filteredData.length===0?`<tr><td colspan="${headers.length+1}" class="px-4 py-8 text-center text-[#60A7BD]">No data matches your filters</td></tr>`:filteredData.map(row=>{
+                const originalIndex=data.indexOf(row);
+                return`<tr class="border-b border-[#E1EBED] hover:bg-[#E1EBED] hover:bg-opacity-50"><td class="px-3 py-2"><button onclick="deleteRow(${originalIndex})" class="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>${headers.map(header=>`<td class="px-3 py-2"><div title="${row[header]}">${renderCellInput(originalIndex,header,row[header],false)}</div></td>`).join('')}</tr>`;
             }).join('');
         }
-
-        // Render Card View
-        function renderCardView(filteredData) {
-            if (filteredData.length === 0) {
-                document.getElementById('cardContainer').innerHTML = '<p class="text-center text-[#60A7BD]">No data to display</p>';
+        
+        function renderCardView(filteredData){
+            if(filteredData.length===0){
+                document.getElementById('cardContainer').innerHTML='<div class="text-center py-8"><p class="text-[#60A7BD] text-lg mb-4">No data matches your filters</p></div>';
+                els.prevCard.disabled=true;
+                els.nextCard.disabled=true;
+                els.deleteCard.disabled=true;
                 return;
             }
-            
-            if (currentCardIndex >= filteredData.length) {
-                currentCardIndex = 0;
-            }
-            
-            const row = filteredData[currentCardIndex];
-            const originalIndex = data.indexOf(row);
-            
-            document.getElementById('cardCounter').textContent = `Card ${currentCardIndex + 1} of ${filteredData.length}`;
-            document.getElementById('prevCard').disabled = currentCardIndex === 0;
-            document.getElementById('nextCard').disabled = currentCardIndex === filteredData.length - 1;
-            
-            document.getElementById('cardContainer').innerHTML = `
-                <div class="space-y-4">
-                    ${headers.map(header => `
-                        <div class="border-b border-[#E1EBED] pb-4">
-                            <label class="block text-sm font-semibold text-[#2C5F6F] mb-2">${header}</label>
-                            ${renderCellInput(originalIndex, header, row[header], true)}
-                        </div>
-                    `).join('')}
-                    <div class="flex justify-between pt-4">
-                        <button onclick="deleteRow(${originalIndex})" 
-                            class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-all shadow-lg font-medium">
-                            Delete Row
-                        </button>
-                    </div>
-                </div>
-            `;
+            if(currentCardIndex>=filteredData.length)currentCardIndex=0;
+            const row=filteredData[currentCardIndex];
+            const originalIndex=data.indexOf(row);
+            document.getElementById('cardCounter').textContent=`Card ${currentCardIndex+1} of ${filteredData.length}`;
+            els.prevCard.disabled=currentCardIndex===0;
+            els.nextCard.disabled=currentCardIndex===filteredData.length-1;
+            els.deleteCard.disabled=false;
+            document.getElementById('cardContainer').innerHTML=`<div class="space-y-3">${headers.map(header=>`<div class="border-b border-[#E1EBED] pb-3 p-2"><label class="block text-sm font-semibold text-[#2C5F6F] mb-2">${header}</label>${renderCellInput(originalIndex,header,row[header],true)}</div>`).join('')}</div>`;
         }
-
-        // Render Cell Input
-        function renderCellInput(rowIndex, header, value, isCard = false) {
-            const isNumber = !isNaN(value) && value !== '' || headers.some(h => 
-                ['height', 'weight', 'chest', 'hip', 'bmi', 'age'].includes(h.toLowerCase()) && h === header
-            );
-            
-            if (isNumber) {
-                const suggestions = generateSuggestions(header, value);
-                return `
-                    <div class="relative">
-                        <input type="number" 
-                            value="${value}" 
-                            onchange="updateCell(${rowIndex}, '${header}', this.value)"
-                            onfocus="showSuggestions(this, ${rowIndex}, '${header}')"
-                            class="w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none transition-all ${isCard ? 'text-lg' : ''}"
-                            placeholder="Enter ${header}">
-                        ${suggestions.length > 0 ? `
-                            <div class="hidden absolute z-10 mt-1 w-full bg-white border-2 border-[#E1EBED] rounded-lg shadow-lg max-h-48 overflow-y-auto suggestion-list">
-                                ${suggestions.map(s => `
-                                    <div class="suggestion-item px-3 py-2 cursor-pointer hover:bg-[#E1EBED] transition-colors" 
-                                        onclick="selectSuggestion(${rowIndex}, '${header}', ${s})">
-                                        ${s}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            } else {
-                return `
-                    <input type="text" 
-                        value="${value}" 
-                        onchange="updateCell(${rowIndex}, '${header}', this.value)"
-                        class="w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg focus:border-[#60A7BD] focus:outline-none transition-all ${isCard ? 'text-lg' : ''}"
-                        placeholder="Enter ${header}">
-                `;
+        
+        function isNumericField(header){
+            const numericKeywords=['height','weight','chest','hip','bmi','age','size','number','count','amount','price','cost','total','score'];
+            return numericKeywords.some(keyword=>header.toLowerCase().includes(keyword))||numberSuggestions[header];
+        }
+        
+        function renderCellInput(rowIndex,header,value,isCard=false){
+            const isNumber=isNumericField(header);
+            const inputId=`input-${rowIndex}-${header.replace(/\s+/g,'_')}`;
+            if(isNumber){
+                const suggestions=generateSuggestions(header,value);
+                return`<div class="relative"><input type="number" id="${inputId}" value="${value}" onchange="updateCell(${rowIndex},'${header}',this.value)" onfocus="showSuggestions('${inputId}',${rowIndex},'${header}')" class="cell-input w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg ${isCard?'text-base':'text-sm'}" placeholder="Enter ${header}">${suggestions.length>0?`<div id="suggestions-${inputId}" class="hidden absolute z-20 mt-1 w-full bg-white border-2 border-[#60A7BD] rounded-lg shadow-xl max-h-64 overflow-y-auto"><div class="sticky top-0 bg-gradient-to-r from-[#60A7BD] to-[#8CC0CE] text-white px-3 py-2 text-xs font-semibold">Quick Select Values</div>${suggestions.map(s=>{const isCommon=numberSuggestions[header]?.common.includes(s);const isRecent=numberSuggestions[header]?.recent.includes(s);const badge=isCommon?'Common':isRecent?'Recent':'';return`<div class="suggestion-item" onclick="selectSuggestion(${rowIndex},'${header}',${s},'${inputId}')"><span class="font-medium text-[#2C5F6F]">${s}</span>${badge?`<span class="suggestion-badge">${badge}</span>`:''}</div>`;}).join('')}</div>`:''}</div>`;
+            }else{
+                return`<input type="text" value="${value}" onchange="updateCell(${rowIndex},'${header}',this.value)" class="cell-input w-full px-3 py-2 border-2 border-[#E1EBED] rounded-lg ${isCard?'text-base':'text-sm'}" placeholder="Enter ${header}">`;
             }
         }
-
-        // Show Suggestions
-        function showSuggestions(input, rowIndex, header) {
-            const parent = input.parentElement;
-            const suggestionList = parent.querySelector('.suggestion-list');
-            if (suggestionList) {
-                suggestionList.classList.remove('hidden');
-                document.addEventListener('click', function hideSuggestions(e) {
-                    if (!parent.contains(e.target)) {
-                        suggestionList.classList.add('hidden');
-                        document.removeEventListener('click', hideSuggestions);
-                    }
-                });
+        
+        function showSuggestions(inputId,rowIndex,header){
+            const suggestionBox=document.getElementById(`suggestions-${inputId}`);
+            if(suggestionBox){
+                document.querySelectorAll('[id^="suggestions-"]').forEach(box=>{if(box.id!==`suggestions-${inputId}`)box.classList.add('hidden');});
+                suggestionBox.classList.remove('hidden');
+                setTimeout(()=>{
+                    document.addEventListener('click',function hideSuggestions(e){
+                        const input=document.getElementById(inputId);
+                        if(input&&!input.contains(e.target)&&!suggestionBox.contains(e.target)){
+                            suggestionBox.classList.add('hidden');
+                            document.removeEventListener('click',hideSuggestions);
+                        }
+                    });
+                },100);
             }
         }
-
-        // Select Suggestion
-        function selectSuggestion(rowIndex, header, value) {
-            updateCell(rowIndex, header, value);
-            renderData();
-        }
-
-        // Update Cell
-        function updateCell(rowIndex, header, value) {
-            data[rowIndex][header] = value;
-            addToHistory(JSON.parse(JSON.stringify(data)));
-            analyzeDataForSuggestions();
-            saveToStorage();
-            renderData();
-        }
-
-        // Navigate Card
-        function navigateCard(direction) {
-            const filteredData = getFilteredData();
-            currentCardIndex += direction;
-            currentCardIndex = Math.max(0, Math.min(currentCardIndex, filteredData.length - 1));
-            renderData();
-        }
-
-        // Add Row
-        function addRow() {
-            const newRow = {};
-            headers.forEach(h => newRow[h] = '');
-            data.push(newRow);
-            addToHistory(JSON.parse(JSON.stringify(data)));
-            saveToStorage();
-            renderData();
-        }
-
-        // Delete Row
-        function deleteRow(index) {
-            if (confirm('Are you sure you want to delete this row?')) {
-                data.splice(index, 1);
-                addToHistory(JSON.parse(JSON.stringify(data)));
-                saveToStorage();
-                renderData();
-            }
-        }
-
-        // History Management
-        function addToHistory(newData) {
-            history = history.slice(0, historyIndex + 1);
-            history.push(newData);
-            historyIndex = history.length - 1;
-            updateHistoryButtons();
-            
-            // Add to history log
-            const historyLog = JSON.parse(localStorage.getItem('excelEditorHistory') || '[]');
-            historyLog.unshift({
-                timestamp: new Date().toISOString(),
-                sheetName: sheets[activeSheet] || 'Sheet 1',
-                rowCount: data.length,
-                action: 'Data Modified'
-            });
-            localStorage.setItem('excelEditorHistory', JSON.stringify(historyLog.slice(0, 20)));
-        }
-
-        function undo() {
-            if (historyIndex > 0) {
-                historyIndex--;
-                data = JSON.parse(JSON.stringify(history[historyIndex]));
-                updateHistoryButtons();
-                saveToStorage();
-                renderData();
-            }
-        }
-
-        function redo() {
-            if (historyIndex < history.length - 1) {
-                historyIndex++;
-                data = JSON.parse(JSON.stringify(history[historyIndex]));
-                updateHistoryButtons();
-                saveToStorage();
-                renderData();
-            }
-        }
-
-        function updateHistoryButtons() {
-            undoBtn.disabled = historyIndex <= 0;
-            redoBtn.disabled = historyIndex >= history.length - 1;
-        }
-
-        function toggleHistory() {
-            const isVisible = !historyPanel.classList.contains('hidden');
-            if (isVisible) {
-                historyPanel.classList.add('hidden');
-            } else {
-                renderHistoryList();
-                historyPanel.classList.remove('hidden');
-            }
-        }
-
-        function renderHistoryList() {
-            const historyLog = JSON.parse(localStorage.getItem('excelEditorHistory') || '[]');
-            const container = document.getElementById('historyList');
-            
-            if (historyLog.length === 0) {
-                container.innerHTML = '<p class="text-[#60A7BD] text-center py-4">No history available</p>';
-                return;
-            }
-            
-            container.innerHTML = historyLog.map((item, idx) => {
-                const date = new Date(item.timestamp);
-                const timeAgo = getTimeAgo(date);
-                return `
-                    <div class="p-4 bg-white rounded-lg border-2 border-[#E1EBED] hover:border-[#60A7BD] transition-all cursor-pointer">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="font-semibold text-[#2C5F6F]">${item.action}</p>
-                                <p class="text-sm text-[#60A7BD]">${item.sheetName} - ${item.rowCount} rows</p>
-                            </div>
-                            <span class="text-xs text-[#8CC0CE]">${timeAgo}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function getTimeAgo(date) {
-            const seconds = Math.floor((new Date() - date) / 1000);
-            const intervals = {
-                year: 31536000,
-                month: 2592000,
-                week: 604800,
-                day: 86400,
-                hour: 3600,
-                minute: 60,
-                second: 1
-            };
-            
-            for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-                const interval = Math.floor(seconds / secondsInUnit);
-                if (interval >= 1) {
-                    return `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
+        
+        function selectSuggestion(rowIndex,header,value,inputId){
+            updateCell(rowIndex,header,value);
+            const suggestionBox=document.getElementById(`suggestions-${inputId}`);
+            if(suggestionBox)suggestionBox.classList.add('hidden');
+            if(isCardView){
+                const currentIndex=headers.indexOf(header);
+                if(currentIndex<headers.length-1){
+                    setTimeout(()=>{
+                        const nextHeader=headers[currentIndex+1];
+                        const nextInputId=`input-${rowIndex}-${nextHeader.replace(/\s+/g,'_')}`;
+                        const nextInput=document.getElementById(nextInputId);
+                        if(nextInput)nextInput.focus();
+                    },100);
+                }else{
+                    const filteredData=getFilteredData();
+                    if(currentCardIndex<filteredData.length-1)navigateCard(1);
                 }
             }
-            return 'Just now';
         }
-
-        // Toggle View Mode
-        function toggleViewMode() {
-            isCardView = viewModeCheckbox.checked;
-            if (isCardView) {
-                tableView.classList.add('hidden');
-                cardView.classList.remove('hidden');
-            } else {
-                tableView.classList.remove('hidden');
-                cardView.classList.add('hidden');
-            }
+        
+        function navigateCard(direction){
+            const filteredData=getFilteredData();
+            currentCardIndex+=direction;
+            currentCardIndex=Math.max(0,Math.min(currentCardIndex,filteredData.length-1));
             renderData();
         }
-
-        // Download Handler
-        function handleDownload() {
-            if (data.length === 0) return;
-            
-            const wb = XLSX.utils.book_new();
-            
-            sheets.forEach((sheetName, idx) => {
-                const wsData = idx === activeSheet ? data : [];
-                const ws = XLSX.utils.json_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, sheetName);
-            });
-            
-            XLSX.writeFile(wb, `edited_${new Date().getTime()}.xlsx`);
+        
+        function deleteCurrentCard(){
+            const filteredData=getFilteredData();
+            if(filteredData.length===0)return;
+            const row=filteredData[currentCardIndex];
+            const originalIndex=data.indexOf(row);
+            deleteRow(originalIndex);
         }
-
-        // Storage Management
-        function saveToStorage() {
-            if (!autoSaveEnabled || data.length === 0) return;
-            
-            const state = {
-                sheets,
-                activeSheet,
-                data,
-                headers,
-                history,
-                historyIndex,
-                filters,
-                searchTerm,
-                currentCardIndex,
-                isCardView,
-                timestamp: new Date().toISOString()
-            };
-            
-            try {
-                localStorage.setItem('excelEditorState', JSON.stringify(state));
-            } catch (e) {
-                console.error('Failed to save state:', e);
+        
+        function updateCell(rowIndex,header,value){
+            if(rowIndex<0||rowIndex>=data.length)return;
+            data[rowIndex][header]=value;
+            addToHistory(JSON.parse(JSON.stringify(data)));
+            analyzeDataForSuggestions();
+            debouncedSave();
+        }
+        
+        function addRow(){
+            const newRow={};
+            headers.forEach(h=>newRow[h]='');
+            data.push(newRow);
+            addToHistory(JSON.parse(JSON.stringify(data)));
+            debouncedSave();
+            renderData();
+            if(isCardView){
+                const filteredData=getFilteredData();
+                currentCardIndex=filteredData.length-1;
+                renderData();
             }
         }
-
-        function loadFromStorage() {
-            try {
-                const saved = localStorage.getItem('excelEditorState');
-                if (saved) {
-                    const state = JSON.parse(saved);
-                    sheets = state.sheets || [];
-                    activeSheet = state.activeSheet || 0;
-                    data = state.data || [];
-                    headers = state.headers || [];
-                    history = state.history || [];
-                    historyIndex = state.historyIndex || -1;
-                    filters = state.filters || {};
-                    searchTerm = state.searchTerm || '';
-                    currentCardIndex = state.currentCardIndex || 0;
-                    isCardView = state.isCardView || false;
-                    
-                    if (data.length > 0) {
-                        viewModeCheckbox.checked = isCardView;
-                        globalSearch.value = searchTerm;
+        
+        function deleteRow(index){
+            if(index<0||index>=data.length)return;
+            if(confirm('Are you sure you want to delete this row?')){
+                data.splice(index,1);
+                addToHistory(JSON.parse(JSON.stringify(data)));
+                debouncedSave();
+                const filteredData=getFilteredData();
+                if(currentCardIndex>=filteredData.length)currentCardIndex=Math.max(0,filteredData.length-1);
+                renderData();
+            }
+        }
+        
+        function addToHistory(newData){
+            history=history.slice(0,historyIndex+1);
+            history.push(newData);
+            historyIndex=history.length-1;
+            if(history.length>50){history.shift();historyIndex--;}
+            updateHistoryButtons();
+            const historyLog=JSON.parse(localStorage.getItem('excelEditorHistory')||'[]');
+            historyLog.unshift({timestamp:new Date().toISOString(),sheetName:sheets[activeSheet]||'Sheet 1',rowCount:data.length,action:'Data Modified'});
+            localStorage.setItem('excelEditorHistory',JSON.stringify(historyLog.slice(0,20)));
+        }
+        
+        function undo(){
+            if(historyIndex>0){
+                historyIndex--;
+                data=JSON.parse(JSON.stringify(history[historyIndex]));
+                updateHistoryButtons();
+                analyzeDataForSuggestions();
+                debouncedSave();
+                renderData();
+            }
+        }
+        
+        function redo(){
+            if(historyIndex<history.length-1){
+                historyIndex++;
+                data=JSON.parse(JSON.stringify(history[historyIndex]));
+                updateHistoryButtons();
+                analyzeDataForSuggestions();
+                debouncedSave();
+                renderData();
+            }
+        }
+        
+        function updateHistoryButtons(){
+            els.undoBtn.disabled=historyIndex<=0;
+            els.redoBtn.disabled=historyIndex>=history.length-1;
+        }
+        
+        function toggleHistory(){
+            const isVisible=!els.historyPanel.classList.contains('hidden');
+            if(isVisible)els.historyPanel.classList.add('hidden');
+            else{renderHistoryList();els.historyPanel.classList.remove('hidden');}
+        }
+        
+        function renderHistoryList(){
+            const historyLog=JSON.parse(localStorage.getItem('excelEditorHistory')||'[]');
+            const container=document.getElementById('historyList');
+            if(historyLog.length===0){container.innerHTML='<p class="text-[#60A7BD] text-center py-4">No history available</p>';return;}
+            container.innerHTML=historyLog.map(item=>{
+                const date=new Date(item.timestamp);
+                const timeAgo=getTimeAgo(date);
+                return`<div class="p-3 bg-white rounded-lg border-2 border-[#E1EBED] hover:border-[#60A7BD]"><div class="flex justify-between items-start"><div><p class="font-semibold text-[#2C5F6F] text-sm">${item.action}</p><p class="text-xs text-[#60A7BD]">${item.sheetName} - ${item.rowCount} rows</p></div><span class="text-xs text-[#8CC0CE] whitespace-nowrap ml-2">${timeAgo}</span></div></div>`;
+            }).join('');
+        }
+        
+        function getTimeAgo(date){
+            const seconds=Math.floor((new Date()-date)/1000);
+            const intervals={year:31536000,month:2592000,week:604800,day:86400,hour:3600,minute:60};
+            for(const[unit,secondsInUnit]of Object.entries(intervals)){
+                const interval=Math.floor(seconds/secondsInUnit);
+                if(interval>=1)return`${interval} ${unit}${interval!==1?'s':''} ago`;
+            }
+            return'Just now';
+        }
+        
+        function handleDownload(){
+            if(data.length===0)return;
+            const wb=XLSX.utils.book_new();
+            sheets.forEach((sheetName,idx)=>{
+                const wsData=idx===activeSheet?data:[];
+                const ws=XLSX.utils.json_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb,ws,sheetName);
+            });
+            const fileName=`edited_${sheets[activeSheet]}_${new Date().getTime()}.xlsx`;
+            XLSX.writeFile(wb,fileName);
+        }
+        
+        function debouncedSave(){
+            if(saveTimeout)clearTimeout(saveTimeout);
+            saveTimeout=setTimeout(()=>saveToStorage(),1000);
+        }
+        
+        function saveToStorage(){
+            if(!autoSaveEnabled||data.length===0)return;
+            const state={sheets,activeSheet,data,headers,history:history.slice(-20),historyIndex:Math.min(historyIndex,19),filters,searchTerm,currentCardIndex,isCardView,timestamp:new Date().toISOString()};
+            try{localStorage.setItem('excelEditorState',JSON.stringify(state));}
+            catch(e){
+                console.error('Failed to save:',e);
+                try{
+                    const minimalState={...state,history:[data],historyIndex:0};
+                    localStorage.setItem('excelEditorState',JSON.stringify(minimalState));
+                }catch(e2){console.error('Failed minimal save:',e2);}
+            }
+        }
+        
+        function loadFromStorage(){
+            try{
+                const saved=localStorage.getItem('excelEditorState');
+                if(saved){
+                    const state=JSON.parse(saved);
+                    sheets=state.sheets||[];
+                    activeSheet=state.activeSheet||0;
+                    data=state.data||[];
+                    headers=state.headers||[];
+                    history=state.history||[];
+                    historyIndex=state.historyIndex||-1;
+                    filters=state.filters||{};
+                    searchTerm=state.searchTerm||'';
+                    currentCardIndex=state.currentCardIndex||0;
+                    isCardView=state.isCardView||false;
+                    if(data.length>0){
+                        if(isCardView){
+                            els.cardViewBtn.classList.add('active');
+                            els.tableViewBtn.classList.remove('active');
+                        }
+                        els.globalSearch.value=searchTerm;
                         analyzeDataForSuggestions();
                         renderSheetButtons();
                         renderData();
@@ -815,48 +549,33 @@
                         updateUI();
                     }
                 }
-            } catch (e) {
-                console.error('Failed to load saved state:', e);
-            }
+            }catch(e){console.error('Failed to load:',e);localStorage.removeItem('excelEditorState');}
         }
-
-        // Update UI Visibility
-        function updateUI() {
-            const hasData = data.length > 0;
-            
-            emptyState.classList.toggle('hidden', hasData);
-            tableView.classList.toggle('hidden', !hasData || isCardView);
-            cardView.classList.toggle('hidden', !hasData || !isCardView);
-            sheetsNav.classList.toggle('hidden', sheets.length === 0);
-            filterSection.classList.toggle('hidden', !hasData);
-            
-            downloadBtn.disabled = !hasData;
-            addRowBtn.disabled = !hasData;
+        
+        function updateUI(){
+            const hasData=data.length>0;
+            els.emptyState.classList.toggle('hidden',hasData);
+            els.tableView.classList.toggle('hidden',!hasData||isCardView);
+            els.cardView.classList.toggle('hidden',!hasData||!isCardView);
+            els.sheetsNav.classList.toggle('hidden',sheets.length===0);
+            els.filterSection.classList.toggle('hidden',!hasData);
+            els.downloadBtn.disabled=!hasData;
+            els.addRowBtn.disabled=!hasData;
             updateHistoryButtons();
         }
-
-        // Auto-save on window unload
-        window.addEventListener('beforeunload', () => {
-            if (autoSaveEnabled && data.length > 0) {
-                saveToStorage();
+        
+        window.addEventListener('beforeunload',()=>{if(autoSaveEnabled&&data.length>0)saveToStorage();});
+        
+        document.addEventListener('keydown',e=>{
+            if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+            else if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+            else if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveToStorage();}
+            else if(isCardView&&!e.target.matches('input, textarea')){
+                if(e.key==='ArrowLeft'&&currentCardIndex>0){e.preventDefault();navigateCard(-1);}
+                else if(e.key==='ArrowRight'){e.preventDefault();navigateCard(1);}
             }
         });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-                e.preventDefault();
-                undo();
-            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-                e.preventDefault();
-                redo();
-            } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-                e.preventDefault();
-                saveToStorage();
-            }
-        });
-
-        // Initialize UI on load
+        
         updateUI();
     </script>
 </body>
