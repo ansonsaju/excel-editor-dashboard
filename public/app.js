@@ -35,6 +35,16 @@ const TrendingUp = (props) => h('svg', { ...props, xmlns: "http://www.w3.org/200
 
 const Clock = (props) => h('svg', { ...props, xmlns: "http://www.w3.org/2000/svg", width: "24", height: "24", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round" }, h('circle', { cx: "12", cy: "12", r: "10" }), h('polyline', { points: "12 6 12 12 16 14" }));
 
+// Safe JSON parse helper
+const safeJSONParse = (str, defaultValue) => {
+  try {
+    if (!str || str === 'undefined' || str === 'null') return defaultValue;
+    return JSON.parse(str);
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
 // Color palette
 const colors = {
   sage: '#6D7F6C',
@@ -63,18 +73,23 @@ const ExcelEditorPro = () => {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const savedFiles = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-    if (savedFiles.length > 0) {
-      loadFileFromHistory(savedFiles[0]);
+    // Load saved file from localStorage on mount
+    try {
+      const savedFiles = safeJSONParse(localStorage.getItem('excelFileHistory'), []);
+      if (savedFiles && savedFiles.length > 0 && savedFiles[0].data) {
+        loadFileFromHistory(savedFiles[0]);
+      }
+    } catch (e) {
+      console.log('No saved files found');
     }
   }, []);
 
   useEffect(() => {
-    if (autoSave && data.length > 0) {
+    if (autoSave && data.length > 0 && fileName) {
       const timeout = setTimeout(() => saveToStorage(), 1000);
       return () => clearTimeout(timeout);
     }
-  }, [data, autoSave]);
+  }, [data, autoSave, fileName]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -85,108 +100,142 @@ const ExcelEditorPro = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    setFileName(file.name);
-    const arrayBuffer = await file.arrayBuffer();
-    const workbook = window.XLSX.read(arrayBuffer);
-    const sheetNames = workbook.SheetNames;
-    
-    setSheets(sheetNames);
-    loadSheet(workbook, 0);
-    showToast('File uploaded successfully!');
+    try {
+      setFileName(file.name);
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = window.XLSX.read(arrayBuffer);
+      const sheetNames = workbook.SheetNames;
+      
+      setSheets(sheetNames);
+      loadSheet(workbook, 0);
+      showToast('File uploaded successfully!');
+    } catch (error) {
+      showToast('Error uploading file', 'error');
+      console.error('Upload error:', error);
+    }
   };
 
   const loadSheet = (workbook, index) => {
-    const ws = workbook.Sheets[workbook.SheetNames[index]];
-    const jsonData = window.XLSX.utils.sheet_to_json(ws, { defval: '' });
-    
-    if (jsonData.length > 0) {
-      const cols = Object.keys(jsonData[0]);
-      setHeaders(cols);
-      setData(jsonData);
-      setActiveSheet(index);
-      setHistory([JSON.parse(JSON.stringify(jsonData))]);
-      setHistoryIndex(0);
-      setSearchTerm('');
-      analyzeDataForSuggestions(jsonData, cols);
+    try {
+      const ws = workbook.Sheets[workbook.SheetNames[index]];
+      const jsonData = window.XLSX.utils.sheet_to_json(ws, { defval: '' });
+      
+      if (jsonData.length > 0) {
+        const cols = Object.keys(jsonData[0]);
+        setHeaders(cols);
+        setData(jsonData);
+        setActiveSheet(index);
+        setHistory([JSON.parse(JSON.stringify(jsonData))]);
+        setHistoryIndex(0);
+        setSearchTerm('');
+        analyzeDataForSuggestions(jsonData, cols);
+      }
+    } catch (error) {
+      showToast('Error loading sheet', 'error');
+      console.error('Load sheet error:', error);
     }
   };
 
   const analyzeDataForSuggestions = (dataset, cols) => {
-    const suggestions = {};
-    
-    cols.forEach(header => {
-      const values = dataset.map(row => row[header]).filter(v => v !== '' && v !== '-');
+    try {
+      const suggestions = {};
       
-      const frequency = {};
-      values.forEach(v => {
-        frequency[v] = (frequency[v] || 0) + 1;
+      cols.forEach(header => {
+        const values = dataset.map(row => row[header]).filter(v => v !== '' && v !== '-' && v !== null && v !== undefined);
+        
+        const frequency = {};
+        values.forEach(v => {
+          const key = String(v);
+          frequency[key] = (frequency[key] || 0) + 1;
+        });
+        
+        const sortedByFreq = Object.entries(frequency)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([val]) => val);
+
+        const numValues = values.filter(v => !isNaN(v) && v !== '').map(Number);
+        if (numValues.length > 0) {
+          const avg = numValues.reduce((a, b) => a + b, 0) / numValues.length;
+          const min = Math.min(...numValues);
+          const max = Math.max(...numValues);
+          
+          suggestions[header] = {
+            type: 'numeric',
+            common: sortedByFreq,
+            stats: { avg, min, max },
+            recent: numValues.slice(-5)
+          };
+        } else {
+          suggestions[header] = {
+            type: 'text',
+            common: sortedByFreq,
+            recent: values.slice(-5)
+          };
+        }
       });
       
-      const sortedByFreq = Object.entries(frequency)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([val]) => val);
-
-      const numValues = values.filter(v => !isNaN(v)).map(Number);
-      if (numValues.length > 0) {
-        const avg = numValues.reduce((a, b) => a + b, 0) / numValues.length;
-        const min = Math.min(...numValues);
-        const max = Math.max(...numValues);
-        
-        suggestions[header] = {
-          type: 'numeric',
-          common: sortedByFreq,
-          stats: { avg, min, max },
-          recent: numValues.slice(-5)
-        };
-      } else {
-        suggestions[header] = {
-          type: 'text',
-          common: sortedByFreq,
-          recent: values.slice(-5)
-        };
-      }
-    });
-    
-    setCustomSuggestions(suggestions);
+      setCustomSuggestions(suggestions);
+    } catch (error) {
+      console.error('Suggestion analysis error:', error);
+    }
   };
 
   const generateSuggestions = (header, currentValue) => {
-    const headerSuggestions = customSuggestions[header];
-    if (!headerSuggestions) return [];
+    try {
+      const headerSuggestions = customSuggestions[header];
+      if (!headerSuggestions) return [];
 
-    let suggestions = new Set();
-    headerSuggestions.common.forEach(v => suggestions.add(v));
-    headerSuggestions.recent.forEach(v => suggestions.add(v));
+      let suggestions = new Set();
+      
+      if (headerSuggestions.common) {
+        headerSuggestions.common.forEach(v => suggestions.add(v));
+      }
+      
+      if (headerSuggestions.recent) {
+        headerSuggestions.recent.forEach(v => suggestions.add(v));
+      }
 
-    if (headerSuggestions.type === 'numeric' && currentValue && !isNaN(currentValue)) {
-      const num = Number(currentValue);
-      const { min, max, avg } = headerSuggestions.stats;
-      
-      [-5, -2, -1, 1, 2, 5].forEach(offset => {
-        const val = num + offset;
-        if (val >= min && val <= max) suggestions.add(Math.round(val * 100) / 100);
-      });
-      
-      suggestions.add(Math.round(avg * 100) / 100);
+      if (headerSuggestions.type === 'numeric' && currentValue && !isNaN(currentValue)) {
+        const num = Number(currentValue);
+        const { min, max, avg } = headerSuggestions.stats;
+        
+        [-5, -2, -1, 1, 2, 5].forEach(offset => {
+          const val = num + offset;
+          if (val >= min && val <= max) suggestions.add(String(Math.round(val * 100) / 100));
+        });
+        
+        suggestions.add(String(Math.round(avg * 100) / 100));
+      }
+
+      return Array.from(suggestions).slice(0, 12);
+    } catch (error) {
+      console.error('Generate suggestions error:', error);
+      return [];
     }
-
-    return Array.from(suggestions).slice(0, 12);
   };
 
   const updateCell = (rowIndex, header, value) => {
-    const newData = [...data];
-    newData[rowIndex][header] = value;
-    setData(newData);
-    addToHistory(newData);
-    analyzeDataForSuggestions(newData, headers);
+    try {
+      const newData = [...data];
+      newData[rowIndex][header] = value;
+      setData(newData);
+      addToHistory(newData);
+      analyzeDataForSuggestions(newData, headers);
+    } catch (error) {
+      console.error('Update cell error:', error);
+    }
   };
 
   const addToHistory = (newData) => {
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push(JSON.parse(JSON.stringify(newData)));
-    setHistory(newHistory);
-    setHistoryIndex(newHistory.length - 1);
+    try {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(JSON.parse(JSON.stringify(newData)));
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+    } catch (error) {
+      console.error('Add to history error:', error);
+    }
   };
 
   const undo = () => {
@@ -219,66 +268,95 @@ const ExcelEditorPro = () => {
     setData(newData);
     addToHistory(newData);
     showToast('Row deleted');
+    
+    if (isCardView && currentCardIndex >= newData.length) {
+      setCurrentCardIndex(Math.max(0, newData.length - 1));
+    }
   };
 
   const saveToStorage = () => {
-    if (fileName) {
-      const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-      const fileEntry = {
-        fileName,
-        timestamp: new Date().toISOString(),
-        data,
-        headers,
-        sheets,
-        activeSheet
-      };
-      
-      const existingIndex = fileHistory.findIndex(f => f.fileName === fileName);
-      if (existingIndex >= 0) fileHistory.splice(existingIndex, 1);
-      
-      fileHistory.unshift(fileEntry);
-      localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
+    try {
+      if (fileName && data.length > 0) {
+        const fileHistory = safeJSONParse(localStorage.getItem('excelFileHistory'), []);
+        const fileEntry = {
+          fileName,
+          timestamp: new Date().toISOString(),
+          data,
+          headers,
+          sheets,
+          activeSheet
+        };
+        
+        const existingIndex = fileHistory.findIndex(f => f.fileName === fileName);
+        if (existingIndex >= 0) fileHistory.splice(existingIndex, 1);
+        
+        fileHistory.unshift(fileEntry);
+        localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
+      }
+    } catch (error) {
+      console.error('Save to storage error:', error);
     }
   };
 
   const loadFileFromHistory = (file) => {
-    setFileName(file.fileName);
-    setData(file.data);
-    setHeaders(file.headers);
-    setSheets(file.sheets);
-    setActiveSheet(file.activeSheet);
-    setHistory([JSON.parse(JSON.stringify(file.data))]);
-    setHistoryIndex(0);
-    analyzeDataForSuggestions(file.data, file.headers);
-    showToast(`Loaded: ${file.fileName}`);
+    try {
+      if (file && file.data) {
+        setFileName(file.fileName);
+        setData(file.data);
+        setHeaders(file.headers || []);
+        setSheets(file.sheets || []);
+        setActiveSheet(file.activeSheet || 0);
+        setHistory([JSON.parse(JSON.stringify(file.data))]);
+        setHistoryIndex(0);
+        analyzeDataForSuggestions(file.data, file.headers || []);
+        showToast(`Loaded: ${file.fileName}`);
+      }
+    } catch (error) {
+      console.error('Load file from history error:', error);
+      showToast('Error loading file', 'error');
+    }
   };
 
   const downloadFile = () => {
-    if (data.length === 0) return;
-    
-    const wb = window.XLSX.utils.book_new();
-    const ws = window.XLSX.utils.json_to_sheet(data);
-    window.XLSX.utils.book_append_sheet(wb, ws, sheets[activeSheet] || 'Sheet1');
-    
-    const downloadName = fileName ? fileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) : `edited_${Date.now()}.xlsx`;
-    window.XLSX.writeFile(wb, downloadName);
-    showToast('File downloaded successfully!');
+    try {
+      if (data.length === 0) return;
+      
+      const wb = window.XLSX.utils.book_new();
+      const ws = window.XLSX.utils.json_to_sheet(data);
+      window.XLSX.utils.book_append_sheet(wb, ws, sheets[activeSheet] || 'Sheet1');
+      
+      const downloadName = fileName ? fileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) : `edited_${Date.now()}.xlsx`;
+      window.XLSX.writeFile(wb, downloadName);
+      showToast('File downloaded successfully!');
+    } catch (error) {
+      console.error('Download error:', error);
+      showToast('Error downloading file', 'error');
+    }
   };
 
   const getFilteredData = () => {
-    return data.filter(row => {
-      const matchesSearch = searchTerm === '' || 
-        Object.values(row).some(val => 
-          String(val).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      return matchesSearch;
-    });
+    try {
+      return data.filter(row => {
+        const matchesSearch = searchTerm === '' || 
+          Object.values(row).some(val => 
+            String(val).toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        return matchesSearch;
+      });
+    } catch (error) {
+      console.error('Filter error:', error);
+      return data;
+    }
   };
 
   const CellInput = ({ rowIndex, header, value, isCard }) => {
-    const [localValue, setLocalValue] = useState(value);
+    const [localValue, setLocalValue] = useState(value || '');
     const [showDropdown, setShowDropdown] = useState(false);
     const suggestions = generateSuggestions(header, localValue);
+
+    useEffect(() => {
+      setLocalValue(value || '');
+    }, [value]);
 
     const handleFocus = () => {
       if (suggestions.length > 0) setShowDropdown(true);
@@ -304,10 +382,7 @@ const ExcelEditorPro = () => {
           handleBlur();
         },
         onFocus: handleFocus,
-        className: `w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 border-transparent
-          focus:border-[${colors.sage}] focus:ring-2 focus:ring-[${colors.sage}]/20 rounded-lg
-          transition-all duration-300 ${isCard ? 'text-base' : 'text-sm'}
-          hover:bg-white hover:shadow-md group-hover:border-[${colors.mint}]/30`,
+        className: `w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 border-transparent focus:border-[#6D7F6C] focus:ring-2 focus:ring-[#6D7F6C]/20 rounded-lg transition-all duration-300 ${isCard ? 'text-base' : 'text-sm'} hover:bg-white hover:shadow-md`,
         placeholder: `Enter ${header}`
       }),
       
@@ -321,8 +396,8 @@ const ExcelEditorPro = () => {
           'Smart Suggestions'
         ),
         ...suggestions.map((suggestion, idx) => {
-          const isCommon = customSuggestions[header]?.common.includes(suggestion);
-          const isRecent = customSuggestions[header]?.recent.includes(suggestion);
+          const isCommon = customSuggestions[header]?.common?.includes(suggestion);
+          const isRecent = customSuggestions[header]?.recent?.includes(String(suggestion));
           
           return h('div', {
             key: idx,
@@ -501,7 +576,7 @@ const ExcelEditorPro = () => {
           }, 'Clear All')
         ),
         h('div', { className: 'space-y-2 max-h-60 overflow-y-auto' },
-          ...JSON.parse(localStorage.getItem('excelFileHistory') || '[]').map((file, idx) =>
+          ...safeJSONParse(localStorage.getItem('excelFileHistory'), []).map((file, idx) =>
             h('div', {
               key: idx,
               onClick: () => {
@@ -554,7 +629,7 @@ const ExcelEditorPro = () => {
           )
         ),
         
-        h('div', { className: 'bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/50' },
+        filteredData.length > 0 && h('div', { className: 'bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/50' },
           h('div', { className: 'space-y-4' },
             ...headers.map(header =>
               h('div', { key: header, className: 'border-b border-gray-100 pb-4 last:border-0' },
@@ -628,6 +703,7 @@ const ExcelEditorPro = () => {
   );
 };
 
+// Render the app
 const container = document.getElementById('root');
 const root = ReactDOM.createRoot(container);
 root.render(h(ExcelEditorPro));
