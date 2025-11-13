@@ -1,4 +1,102 @@
 // Excel Editor Pro - Complete Application
+const { useState, useEffect, useRef } = React;
+
+// SVG Icon Components
+const Icons = {
+  Upload: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  ),
+  Download: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  ),
+  Undo: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
+    </svg>
+  ),
+  Redo: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/>
+    </svg>
+  ),
+  Plus: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  ),
+  History: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/>
+    </svg>
+  ),
+  Grid: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+    </svg>
+  ),
+  CreditCard: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+    </svg>
+  ),
+  Search: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+  ),
+  X: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  ),
+  ChevronLeft: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  ),
+  ChevronRight: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+  ),
+  Trash2: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+    </svg>
+  ),
+  Save: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+      <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+    </svg>
+  ),
+  Sparkles: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+    </svg>
+  ),
+  TrendingUp: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+    </svg>
+  ),
+  Clock: ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
+  )
+};
+
 // Color palette
 const colors = {
   sage: '#6D7F6C',
@@ -9,822 +107,681 @@ const colors = {
   ivory: '#FFF4EB'
 };
 
-// Global state
-let workbook = null;
-let sheets = [];
-let activeSheet = 0;
-let data = [];
-let headers = [];
-let history = [];
-let historyIndex = -1;
-let filters = {};
-let searchTerm = '';
-let currentCardIndex = 0;
-let isCardView = false;
-let autoSaveEnabled = true;
-let customSuggestions = {};
-let fileName = '';
-let saveTimeout = null;
+// Main Component
+const ExcelEditorPro = () => {
+  const [data, setData] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [sheets, setSheets] = useState([]);
+  const [activeSheet, setActiveSheet] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [filters, setFilters] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isCardView, setIsCardView] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [autoSave, setAutoSave] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
+  const [customSuggestions, setCustomSuggestions] = useState({});
+  const [fileName, setFileName] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const fileInputRef = useRef(null);
 
-// Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-  initializeApp();
-  loadFromStorage();
-});
+  // Load saved files on mount
+  useEffect(() => {
+    const savedFiles = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+    if (savedFiles.length > 0) {
+      loadFileFromHistory(savedFiles[0]);
+    }
+  }, []);
 
-function initializeApp() {
-  // Setup event listeners
-  document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
-  document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-  document.getElementById('downloadBtn').addEventListener('click', downloadFile);
-  document.getElementById('undoBtn').addEventListener('click', undo);
-  document.getElementById('redoBtn').addEventListener('click', redo);
-  document.getElementById('addRowBtn').addEventListener('click', addRow);
-  document.getElementById('historyBtn').addEventListener('click', toggleHistory);
-  document.getElementById('tableViewBtn').addEventListener('click', () => setViewMode(false));
-  document.getElementById('cardViewBtn').addEventListener('click', () => setViewMode(true));
-  document.getElementById('autoSaveCheckbox').addEventListener('change', (e) => autoSaveEnabled = e.target.checked);
-  document.getElementById('globalSearch').addEventListener('input', (e) => {
-    searchTerm = e.target.value;
-    renderData();
-  });
-  document.getElementById('prevCard').addEventListener('click', () => navigateCard(-1));
-  document.getElementById('nextCard').addEventListener('click', () => navigateCard(1));
-  document.getElementById('deleteCard').addEventListener('click', deleteCurrentCard);
-  document.getElementById('clearHistoryBtn').addEventListener('click', clearAllHistory);
-  document.getElementById('emptyStateBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+  // Auto-save
+  useEffect(() => {
+    if (autoSave && data.length > 0) {
+      const timeout = setTimeout(() => saveToStorage(), 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [data, autoSave]);
 
-  // Keyboard shortcuts
-  document.addEventListener('keydown', handleKeyboardShortcuts);
-}
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+  };
 
-async function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  fileName = file.name;
-  try {
+    setFileName(file.name);
     const arrayBuffer = await file.arrayBuffer();
-    workbook = XLSX.read(arrayBuffer);
-    sheets = workbook.SheetNames;
+    const workbook = window.XLSX.read(arrayBuffer);
+    const sheetNames = workbook.SheetNames;
     
-    if (sheets.length > 0) {
-      loadSheet(0);
-      renderSheetButtons();
-      updateUI();
-      saveFileHistory(file.name);
-      showToast('File uploaded successfully!', 'success');
+    setSheets(sheetNames);
+    loadSheet(workbook, 0);
+    saveFileHistory(file.name);
+    showToast('File uploaded successfully!');
+  };
+
+  const loadSheet = (workbook, index) => {
+    const ws = workbook.Sheets[workbook.SheetNames[index]];
+    const jsonData = window.XLSX.utils.sheet_to_json(ws, { defval: '' });
+    
+    if (jsonData.length > 0) {
+      const cols = Object.keys(jsonData[0]);
+      setHeaders(cols);
+      setData(jsonData);
+      setActiveSheet(index);
+      setHistory([JSON.parse(JSON.stringify(jsonData))]);
+      setHistoryIndex(0);
+      setFilters({});
+      setSearchTerm('');
+      analyzeDataForSuggestions(jsonData, cols);
     }
-  } catch (error) {
-    console.error('Upload error:', error);
-    showToast('Error loading file', 'error');
-  }
-}
+  };
 
-function loadSheet(index) {
-  const ws = workbook.Sheets[sheets[index]];
-  const jsonData = XLSX.utils.sheet_to_json(ws, { defval: '' });
-  
-  if (jsonData.length > 0) {
-    headers = Object.keys(jsonData[0]);
-    data = jsonData;
-    activeSheet = index;
-    history = [JSON.parse(JSON.stringify(data))];
-    historyIndex = 0;
-    filters = {};
-    searchTerm = '';
-    currentCardIndex = 0;
-    analyzeDataForSuggestions();
-    renderData();
-    renderFilters();
-    debouncedSave();
-  }
-}
-
-function analyzeDataForSuggestions() {
-  customSuggestions = {};
-  
-  headers.forEach(header => {
-    const values = data.map(row => row[header]).filter(v => v !== '' && v !== '-');
+  const analyzeDataForSuggestions = (dataset, cols) => {
+    const suggestions = {};
     
-    if (values.length === 0) return;
-    
-    // Frequency analysis
-    const frequency = {};
-    values.forEach(v => {
-      frequency[v] = (frequency[v] || 0) + 1;
-    });
-    
-    const sortedByFreq = Object.entries(frequency)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([val]) => val);
-
-    // Check if numeric
-    const numValues = values.filter(v => !isNaN(v) && v !== '').map(Number);
-    
-    if (numValues.length > values.length * 0.5) {
-      // Numeric field
-      const avg = numValues.reduce((a, b) => a + b, 0) / numValues.length;
-      const min = Math.min(...numValues);
-      const max = Math.max(...numValues);
+    cols.forEach(header => {
+      const values = dataset.map(row => row[header]).filter(v => v !== '' && v !== '-');
       
-      customSuggestions[header] = {
-        type: 'numeric',
-        common: sortedByFreq,
-        stats: { avg, min, max },
-        recent: numValues.slice(-5)
-      };
-    } else {
-      // Text field
-      customSuggestions[header] = {
-        type: 'text',
-        common: sortedByFreq,
-        recent: values.slice(-5)
-      };
-    }
-  });
-}
-
-function generateSuggestions(header, currentValue) {
-  const headerSuggestions = customSuggestions[header];
-  if (!headerSuggestions) return [];
-
-  let suggestions = new Set();
-
-  // Add common values
-  headerSuggestions.common.forEach(v => suggestions.add(v));
-  
-  // Add recent values
-  if (headerSuggestions.recent) {
-    headerSuggestions.recent.forEach(v => suggestions.add(v));
-  }
-
-  // For numeric fields, add smart predictions
-  if (headerSuggestions.type === 'numeric' && currentValue && !isNaN(currentValue)) {
-    const num = Number(currentValue);
-    const { min, max, avg } = headerSuggestions.stats;
-    
-    // Add nearby values
-    [-5, -2, -1, 1, 2, 5].forEach(offset => {
-      const val = num + offset;
-      if (val >= min && val <= max) {
-        suggestions.add(Math.round(val * 100) / 100);
-      }
-    });
-    
-    // Add average
-    suggestions.add(Math.round(avg * 100) / 100);
-  }
-
-  return Array.from(suggestions).slice(0, 12);
-}
-
-function renderSheetButtons() {
-  const container = document.getElementById('sheetButtons');
-  container.innerHTML = sheets.map((sheet, idx) => `
-    <button 
-      onclick="handleSheetChange(${idx})" 
-      class="px-4 py-2 rounded-lg font-medium text-sm transition-all ${
-        activeSheet === idx 
-          ? 'bg-gradient-to-r from-[#6D7F6C] to-[#D7E7A4] text-white shadow-lg' 
-          : 'bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-200'
-      }"
-    >
-      ${sheet}
-    </button>
-  `).join('');
-  
-  document.getElementById('sheetsNav').classList.remove('hidden');
-}
-
-function handleSheetChange(index) {
-  if (workbook) {
-    loadSheet(index);
-    renderSheetButtons();
-    if (fileName) saveFileHistory(fileName);
-  }
-}
-
-function renderFilters() {
-  const container = document.getElementById('filterContainer');
-  container.innerHTML = headers.map(header => {
-    const uniqueValues = [...new Set(data.map(row => row[header]))]
-      .filter(v => v !== '' && v !== '-')
-      .sort();
-    
-    return `
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1 truncate" title="${header}">
-          ${header}
-        </label>
-        <select 
-          onchange="handleFilterChange('${header}', this.value)" 
-          class="w-full px-2 py-2 border-2 border-gray-200 rounded-lg focus:border-[#6D7F6C] focus:outline-none text-sm"
-        >
-          <option value="">All (${uniqueValues.length})</option>
-          ${uniqueValues.slice(0, 100).map(val => `
-            <option value="${val}">${val}</option>
-          `).join('')}
-        </select>
-      </div>
-    `;
-  }).join('');
-}
-
-function handleFilterChange(header, value) {
-  if (value === '') {
-    delete filters[header];
-  } else {
-    filters[header] = value;
-  }
-  currentCardIndex = 0;
-  renderData();
-}
-
-function getFilteredData() {
-  return data.filter(row => {
-    const matchesFilters = Object.entries(filters).every(([key, value]) => 
-      String(row[key]) === String(value)
-    );
-    const matchesSearch = searchTerm === '' || 
-      Object.values(row).some(val => 
-        String(val).toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    return matchesFilters && matchesSearch;
-  });
-}
-
-function setViewMode(cardMode) {
-  isCardView = cardMode;
-  
-  const tableBtn = document.getElementById('tableViewBtn');
-  const cardBtn = document.getElementById('cardViewBtn');
-  const tableView = document.getElementById('tableView');
-  const cardView = document.getElementById('cardView');
-  
-  if (cardMode) {
-    tableBtn.classList.remove('active');
-    cardBtn.classList.add('active');
-    tableView.classList.add('hidden');
-    cardView.classList.remove('hidden');
-  } else {
-    cardBtn.classList.remove('active');
-    tableBtn.classList.add('active');
-    cardView.classList.add('hidden');
-    tableView.classList.remove('hidden');
-  }
-  
-  renderData();
-  debouncedSave();
-}
-
-function renderData() {
-  const filteredData = getFilteredData();
-  
-  if (isCardView) {
-    renderCardView(filteredData);
-  } else {
-    renderTableView(filteredData);
-  }
-}
-
-function renderTableView(filteredData) {
-  const headerRow = document.getElementById('tableHeader');
-  const tbody = document.getElementById('tableBody');
-  
-  // Render headers
-  headerRow.innerHTML = `
-    <th class="px-4 py-3 text-left font-semibold text-sm">Actions</th>
-    ${headers.map(h => `
-      <th class="px-4 py-3 text-left font-semibold text-sm whitespace-nowrap" title="${h}">
-        ${h}
-      </th>
-    `).join('')}
-  `;
-  
-  // Render rows
-  if (filteredData.length === 0) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="${headers.length + 1}" class="px-4 py-8 text-center text-gray-500">
-          No data matches your filters
-        </td>
-      </tr>
-    `;
-  } else {
-    tbody.innerHTML = filteredData.map(row => {
-      const originalIndex = data.indexOf(row);
-      return `
-        <tr class="border-b border-gray-100 hover:bg-gradient-to-r hover:from-[#E1ECB3]/30 hover:to-transparent transition-all">
-          <td class="px-4 py-2">
-            <button 
-              onclick="deleteRow(${originalIndex})" 
-              class="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-all"
-              title="Delete row"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              </svg>
-            </button>
-          </td>
-          ${headers.map(header => `
-            <td class="px-4 py-2">
-              ${renderCellInput(originalIndex, header, row[header])}
-            </td>
-          `).join('')}
-        </tr>
-      `;
-    }).join('');
-  }
-}
-
-function renderCardView(filteredData) {
-  const container = document.getElementById('cardContainer');
-  const counter = document.getElementById('cardCounter');
-  const prevBtn = document.getElementById('prevCard');
-  const nextBtn = document.getElementById('nextCard');
-  const deleteBtn = document.getElementById('deleteCard');
-  
-  if (filteredData.length === 0) {
-    container.innerHTML = `
-      <div class="text-center py-8">
-        <p class="text-gray-500 text-lg">No data matches your filters</p>
-      </div>
-    `;
-    prevBtn.disabled = true;
-    nextBtn.disabled = true;
-    deleteBtn.disabled = true;
-    return;
-  }
-  
-  if (currentCardIndex >= filteredData.length) {
-    currentCardIndex = 0;
-  }
-  
-  const row = filteredData[currentCardIndex];
-  const originalIndex = data.indexOf(row);
-  
-  counter.textContent = `Card ${currentCardIndex + 1} of ${filteredData.length}`;
-  prevBtn.disabled = currentCardIndex === 0;
-  nextBtn.disabled = currentCardIndex === filteredData.length - 1;
-  deleteBtn.disabled = false;
-  
-  container.innerHTML = `
-    <div class="space-y-4">
-      ${headers.map(header => `
-        <div class="border-b border-gray-100 pb-4 last:border-0">
-          <label class="block text-sm font-semibold text-gray-700 mb-2">
-            ${header}
-          </label>
-          ${renderCellInput(originalIndex, header, row[header], true)}
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-function renderCellInput(rowIndex, header, value, isCard = false) {
-  const suggestions = generateSuggestions(header, value);
-  const inputId = `input-${rowIndex}-${header.replace(/\s+/g, '_')}`;
-  
-  if (suggestions.length > 0) {
-    return `
-      <div class="relative">
-        <input 
-          type="text" 
-          id="${inputId}"
-          value="${value || ''}" 
-          onchange="updateCell(${rowIndex}, '${header}', this.value)"
-          onfocus="showSuggestions('${inputId}', ${rowIndex}, '${header}')"
-          class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 border-gray-200 rounded-lg focus:border-[#6D7F6C] focus:ring-2 focus:ring-[#6D7F6C]/20 transition-all ${isCard ? 'text-base' : 'text-sm'}"
-          placeholder="Enter ${header}"
-        />
-        <div 
-          id="suggestions-${inputId}" 
-          class="hidden absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border-2 border-[#6D7F6C] rounded-xl shadow-2xl max-h-64 overflow-y-auto"
-          style="animation: fadeIn 0.3s ease-out"
-        >
-          <div class="sticky top-0 bg-gradient-to-r from-[#6D7F6C] to-[#C68A60] text-white px-4 py-2 text-xs font-semibold flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 3l-1.5 4.5h-4.5l3.75 2.7-1.5 4.5 3.75-2.7 3.75 2.7-1.5-4.5 3.75-2.7h-4.5z"/>
-            </svg>
-            Smart Suggestions
-          </div>
-          ${suggestions.map(s => {
-            const isCommon = customSuggestions[header]?.common.includes(s);
-            const isRecent = customSuggestions[header]?.recent?.includes(s);
-            return `
-              <div 
-                class="suggestion-item px-4 py-3 hover:bg-gradient-to-r hover:from-[#E1ECB3] hover:to-[#FFF4EB] cursor-pointer transition-all border-b border-gray-100 last:border-0 flex items-center justify-between"
-                onclick="selectSuggestion(${rowIndex}, '${header}', '${s}', '${inputId}')"
-              >
-                <span class="font-medium text-gray-800">${s}</span>
-                ${isCommon ? '<span class="text-xs px-2 py-1 rounded-full bg-gradient-to-r from-[#C68A60] to-[#DDC1B0] text-white">Common</span>' : ''}
-                ${isRecent && !isCommon ? '<span class="text-xs px-2 py-1 rounded-full bg-gradient-to-r from-[#D7E7A4] to-[#E1ECB3] text-gray-700">Recent</span>' : ''}
-              </div>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  } else {
-    return `
-      <input 
-        type="text" 
-        value="${value || ''}" 
-        onchange="updateCell(${rowIndex}, '${header}', this.value)"
-        class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 border-gray-200 rounded-lg focus:border-[#6D7F6C] focus:ring-2 focus:ring-[#6D7F6C]/20 transition-all ${isCard ? 'text-base' : 'text-sm'}"
-        placeholder="Enter ${header}"
-      />
-    `;
-  }
-}
-
-function showSuggestions(inputId, rowIndex, header) {
-  const suggestionBox = document.getElementById(`suggestions-${inputId}`);
-  if (suggestionBox) {
-    // Hide all other suggestion boxes
-    document.querySelectorAll('[id^="suggestions-"]').forEach(box => {
-      if (box.id !== `suggestions-${inputId}`) {
-        box.classList.add('hidden');
-      }
-    });
-    
-    suggestionBox.classList.remove('hidden');
-    
-    // Close on outside click
-    setTimeout(() => {
-      document.addEventListener('click', function hideSuggestions(e) {
-        const input = document.getElementById(inputId);
-        if (input && !input.contains(e.target) && !suggestionBox.contains(e.target)) {
-          suggestionBox.classList.add('hidden');
-          document.removeEventListener('click', hideSuggestions);
-        }
+      const frequency = {};
+      values.forEach(v => {
+        frequency[v] = (frequency[v] || 0) + 1;
       });
-    }, 100);
-  }
-}
+      
+      const sortedByFreq = Object.entries(frequency)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([val]) => val);
 
-function selectSuggestion(rowIndex, header, value, inputId) {
-  updateCell(rowIndex, header, value);
-  
-  const input = document.getElementById(inputId);
-  if (input) {
-    input.value = value;
-  }
-  
-  const suggestionBox = document.getElementById(`suggestions-${inputId}`);
-  if (suggestionBox) {
-    suggestionBox.classList.add('hidden');
-  }
-  
-  // Auto-advance to next field in card view
-  if (isCardView) {
-    const currentIndex = headers.indexOf(header);
-    if (currentIndex < headers.length - 1) {
-      setTimeout(() => {
-        const nextHeader = headers[currentIndex + 1];
-        const nextInputId = `input-${rowIndex}-${nextHeader.replace(/\s+/g, '_')}`;
-        const nextInput = document.getElementById(nextInputId);
-        if (nextInput) nextInput.focus();
-      }, 100);
-    } else {
-      const filteredData = getFilteredData();
-      if (currentCardIndex < filteredData.length - 1) {
-        navigateCard(1);
+      const numValues = values.filter(v => !isNaN(v)).map(Number);
+      if (numValues.length > 0) {
+        const avg = numValues.reduce((a, b) => a + b, 0) / numValues.length;
+        const min = Math.min(...numValues);
+        const max = Math.max(...numValues);
+        
+        suggestions[header] = {
+          type: 'numeric',
+          common: sortedByFreq,
+          stats: { avg, min, max },
+          recent: numValues.slice(-5)
+        };
+      } else {
+        suggestions[header] = {
+          type: 'text',
+          common: sortedByFreq,
+          recent: values.slice(-5)
+        };
       }
+    });
+    
+    setCustomSuggestions(suggestions);
+  };
+
+  const generateSuggestions = (header, currentValue) => {
+    const headerSuggestions = customSuggestions[header];
+    if (!headerSuggestions) return [];
+
+    let suggestions = new Set();
+    headerSuggestions.common.forEach(v => suggestions.add(v));
+    headerSuggestions.recent.forEach(v => suggestions.add(v));
+
+    if (headerSuggestions.type === 'numeric' && currentValue && !isNaN(currentValue)) {
+      const num = Number(currentValue);
+      const { min, max, avg } = headerSuggestions.stats;
+      
+      [-5, -2, -1, 1, 2, 5].forEach(offset => {
+        const val = num + offset;
+        if (val >= min && val <= max) suggestions.add(Math.round(val * 100) / 100);
+      });
+      
+      suggestions.add(Math.round(avg * 100) / 100);
     }
-  }
-}
 
-function updateCell(rowIndex, header, value) {
-  if (rowIndex < 0 || rowIndex >= data.length) return;
-  
-  data[rowIndex][header] = value;
-  addToHistory(JSON.parse(JSON.stringify(data)));
-  analyzeDataForSuggestions();
-  debouncedSave();
-}
+    return Array.from(suggestions).slice(0, 12);
+  };
 
-function addRow() {
-  const newRow = {};
-  headers.forEach(h => newRow[h] = '');
-  data.push(newRow);
-  
-  addToHistory(JSON.parse(JSON.stringify(data)));
-  debouncedSave();
-  renderData();
-  
-  if (isCardView) {
-    const filteredData = getFilteredData();
-    currentCardIndex = filteredData.length - 1;
-    renderData();
-  }
-  
-  showToast('Row added successfully', 'success');
-}
+  const updateCell = (rowIndex, header, value) => {
+    const newData = [...data];
+    newData[rowIndex][header] = value;
+    setData(newData);
+    addToHistory(newData);
+    analyzeDataForSuggestions(newData, headers);
+  };
 
-function deleteRow(index) {
-  if (index < 0 || index >= data.length) return;
-  
-  if (confirm('Delete this row?')) {
-    data.splice(index, 1);
-    addToHistory(JSON.parse(JSON.stringify(data)));
-    debouncedSave();
-    
-    const filteredData = getFilteredData();
-    if (currentCardIndex >= filteredData.length) {
-      currentCardIndex = Math.max(0, filteredData.length - 1);
+  const addToHistory = (newData) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(newData)));
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
+  const undo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setData(JSON.parse(JSON.stringify(history[historyIndex - 1])));
+      showToast('Undo successful');
     }
+  };
+
+  const redo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setData(JSON.parse(JSON.stringify(history[historyIndex + 1])));
+      showToast('Redo successful');
+    }
+  };
+
+  const addRow = () => {
+    const newRow = {};
+    headers.forEach(h => newRow[h] = '');
+    const newData = [...data, newRow];
+    setData(newData);
+    addToHistory(newData);
+    showToast('Row added successfully');
+  };
+
+  const deleteRow = (index) => {
+    const newData = data.filter((_, i) => i !== index);
+    setData(newData);
+    addToHistory(newData);
+    showToast('Row deleted');
+  };
+
+  const saveToStorage = () => {
+    if (fileName) {
+      const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+      const fileEntry = {
+        fileName,
+        timestamp: new Date().toISOString(),
+        data,
+        headers,
+        sheets,
+        activeSheet
+      };
+      
+      const existingIndex = fileHistory.findIndex(f => f.fileName === fileName);
+      if (existingIndex >= 0) fileHistory.splice(existingIndex, 1);
+      
+      fileHistory.unshift(fileEntry);
+      localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
+    }
+  };
+
+  const saveFileHistory = (name) => {
+    setFileName(name);
+    saveToStorage();
+  };
+
+  const loadFileFromHistory = (file) => {
+    setFileName(file.fileName);
+    setData(file.data);
+    setHeaders(file.headers);
+    setSheets(file.sheets);
+    setActiveSheet(file.activeSheet);
+    setHistory([JSON.parse(JSON.stringify(file.data))]);
+    setHistoryIndex(0);
+    analyzeDataForSuggestions(file.data, file.headers);
+    showToast(`Loaded: ${file.fileName}`);
+  };
+
+  const downloadFile = () => {
+    if (data.length === 0) return;
     
-    renderData();
-    showToast('Row deleted', 'success');
-  }
-}
-
-function deleteCurrentCard() {
-  const filteredData = getFilteredData();
-  if (filteredData.length === 0) return;
-  
-  const row = filteredData[currentCardIndex];
-  const originalIndex = data.indexOf(row);
-  deleteRow(originalIndex);
-}
-
-function navigateCard(direction) {
-  const filteredData = getFilteredData();
-  currentCardIndex += direction;
-  currentCardIndex = Math.max(0, Math.min(currentCardIndex, filteredData.length - 1));
-  renderData();
-}
-
-function addToHistory(newData) {
-  history = history.slice(0, historyIndex + 1);
-  history.push(newData);
-  historyIndex = history.length - 1;
-  
-  if (history.length > 50) {
-    history.shift();
-    historyIndex--;
-  }
-  
-  updateHistoryButtons();
-}
-
-function undo() {
-  if (historyIndex > 0) {
-    historyIndex--;
-    data = JSON.parse(JSON.stringify(history[historyIndex]));
-    updateHistoryButtons();
-    analyzeDataForSuggestions();
-    debouncedSave();
-    renderData();
-  }
-}
-
-function redo() {
-  if (historyIndex < history.length - 1) {
-    historyIndex++;
-    data = JSON.parse(JSON.stringify(history[historyIndex]));
-    updateHistoryButtons();
-    analyzeDataForSuggestions();
-    debouncedSave();
-    renderData();
-  }
-}
-
-function updateHistoryButtons() {
-  document.getElementById('undoBtn').disabled = historyIndex <= 0;
-  document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
-}
-
-function toggleHistory() {
-  const panel = document.getElementById('historyPanel');
-  const isVisible = !panel.classList.contains('hidden');
-  
-  if (isVisible) {
-    panel.classList.add('hidden');
-  } else {
-    renderHistoryList();
-    panel.classList.remove('hidden');
-  }
-}
-
-function renderHistoryList() {
-  const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-  const container = document.getElementById('historyList');
-  
-  if (fileHistory.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-center py-4 text-sm">No saved files</p>';
-    return;
-  }
-  
-  container.innerHTML = fileHistory.map((item, idx) => {
-    const date = new Date(item.timestamp);
-    const timeAgo = getTimeAgo(date);
+    const wb = window.XLSX.utils.book_new();
+    const ws = window.XLSX.utils.json_to_sheet(data);
+    window.XLSX.utils.book_append_sheet(wb, ws, sheets[activeSheet] || 'Sheet1');
     
-    return `
-      <div 
-        class="file-item p-3 bg-white rounded-lg border-2 border-gray-200 hover:border-[#6D7F6C] cursor-pointer transition-all hover:shadow-md"
-        onclick='loadFileFromHistory(${JSON.stringify(item).replace(/'/g, "\\'")})'
-      >
-        <div class="flex justify-between items-start">
-          <div class="flex-1 min-w-0">
-            <p class="font-semibold text-gray-800 text-sm truncate">${item.fileName}</p>
-            <p class="text-xs text-gray-600">${item.sheets?.length || 0} sheets • ${item.data?.length || 0} rows</p>
+    const downloadName = fileName ? fileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) : `edited_${Date.now()}.xlsx`;
+    window.XLSX.writeFile(wb, downloadName);
+    showToast('File downloaded successfully!');
+  };
+
+  const getFilteredData = () => {
+    return data.filter(row => {
+      const matchesFilters = Object.entries(filters).every(([key, value]) => 
+        String(row[key]) === String(value)
+      );
+      const matchesSearch = searchTerm === '' || 
+        Object.values(row).some(val => 
+          String(val).toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      return matchesFilters && matchesSearch;
+    });
+  };
+
+  // Cell Input Component
+  const CellInput = ({ rowIndex, header, value, isCard }) => {
+    const [localValue, setLocalValue] = useState(value);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const suggestions = generateSuggestions(header, localValue);
+
+    const handleFocus = () => {
+      if (suggestions.length > 0) setShowDropdown(true);
+    };
+
+    const handleBlur = () => {
+      setTimeout(() => setShowDropdown(false), 200);
+    };
+
+    const handleChange = (newValue) => {
+      setLocalValue(newValue);
+      updateCell(rowIndex, header, newValue);
+      setShowDropdown(false);
+    };
+
+    return (
+      <div className="relative group">
+        <input
+          type="text"
+          value={localValue}
+          onChange={(e) => setLocalValue(e.target.value)}
+          onBlur={(e) => {
+            handleChange(e.target.value);
+            handleBlur();
+          }}
+          onFocus={handleFocus}
+          style={{
+            borderColor: 'transparent',
+            transition: 'all 0.3s'
+          }}
+          className={`w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 rounded-lg ${isCard ? 'text-base' : 'text-sm'} hover:bg-white hover:shadow-md focus:outline-none focus:ring-2`}
+          placeholder={`Enter ${header}`}
+        />
+        
+        {showDropdown && suggestions.length > 0 && (
+          <div 
+            style={{
+              borderColor: colors.sage,
+              background: 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(12px)'
+            }}
+            className="absolute z-50 mt-2 w-full border-2 rounded-xl shadow-2xl max-h-64 overflow-y-auto"
+          >
+            <div 
+              style={{
+                background: `linear-gradient(to right, ${colors.sage}, ${colors.terracotta})`
+              }}
+              className="sticky top-0 text-white px-4 py-2 text-xs font-semibold flex items-center gap-2"
+            >
+              <Icons.Sparkles size={14} />
+              Smart Suggestions
+            </div>
+            {suggestions.map((suggestion, idx) => {
+              const isCommon = customSuggestions[header]?.common.includes(suggestion);
+              const isRecent = customSuggestions[header]?.recent.includes(suggestion);
+              
+              return (
+                <div
+                  key={idx}
+                  onClick={() => handleChange(suggestion)}
+                  className="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-all duration-200 flex items-center justify-between border-b border-gray-100 last:border-0"
+                >
+                  <span className="font-medium text-gray-800">{suggestion}</span>
+                  {isCommon && (
+                    <span 
+                      style={{
+                        background: `linear-gradient(to right, ${colors.terracotta}, ${colors.blush})`
+                      }}
+                      className="text-xs px-2 py-1 rounded-full text-white flex items-center gap-1"
+                    >
+                      <Icons.TrendingUp size={10} /> Common
+                    </span>
+                  )}
+                  {isRecent && !isCommon && (
+                    <span 
+                      style={{
+                        background: `linear-gradient(to right, ${colors.mint}, ${colors.cream})`
+                      }}
+                      className="text-xs px-2 py-1 rounded-full text-gray-700 flex items-center gap-1"
+                    >
+                      <Icons.Clock size={10} /> Recent
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <span class="text-xs text-gray-500 whitespace-nowrap ml-2">${timeAgo}</span>
-        </div>
+        )}
       </div>
-    `;
-  }).join('');
-}
-
-function loadFileFromHistory(item) {
-  fileName = item.fileName;
-  data = item.data || [];
-  headers = item.headers || [];
-  sheets = item.sheets || [];
-  activeSheet = item.activeSheet || 0;
-  history = [JSON.parse(JSON.stringify(data))];
-  historyIndex = 0;
-  
-  if (data.length > 0) {
-    analyzeDataForSuggestions();
-    renderData();
-    renderFilters();
-    if (sheets.length > 0) renderSheetButtons();
-    updateUI();
-    document.getElementById('historyPanel').classList.add('hidden');
-    showToast(`Loaded: ${fileName}`, 'success');
-  }
-}
-
-function clearAllHistory() {
-  if (confirm('Clear all saved files? This cannot be undone.')) {
-    localStorage.removeItem('excelFileHistory');
-    renderHistoryList();
-    showToast('History cleared', 'success');
-  }
-}
-
-function getTimeAgo(date) {
-  const seconds = Math.floor((new Date() - date) / 1000);
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60
+    );
   };
-  
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(seconds / secondsInUnit);
-    if (interval >= 1) {
-      return `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
-    }
-  }
-  
-  return 'Just now';
-}
 
-function downloadFile() {
-  if (data.length === 0) return;
-  
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, ws, sheets[activeSheet] || 'Sheet1');
-  
-  const downloadName = fileName 
-    ? fileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) 
-    : `edited_${Date.now()}.xlsx`;
-  
-  XLSX.writeFile(wb, downloadName);
-  showToast('File downloaded successfully!', 'success');
-}
-
-function debouncedSave() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => saveToStorage(), 1000);
-}
-
-function saveToStorage() {
-  if (!autoSaveEnabled || data.length === 0) return;
-  if (fileName) saveFileHistory(fileName);
-}
-
-function saveFileHistory(name) {
-  const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-  const fileEntry = {
-    fileName: name,
-    timestamp: new Date().toISOString(),
-    data: data,
-    headers: headers,
-    sheets: sheets,
-    activeSheet: activeSheet
-  };
-  
-  const existingIndex = fileHistory.findIndex(f => f.fileName === name);
-  if (existingIndex >= 0) {
-    fileHistory.splice(existingIndex, 1);
-  }
-  
-  fileHistory.unshift(fileEntry);
-  localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
-}
-
-function loadFromStorage() {
-  try {
-    const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-    if (fileHistory.length > 0) {
-      loadFileFromHistory(fileHistory[0]);
-    }
-  } catch (e) {
-    console.error('Load error:', e);
-  }
-}
-
-function updateUI() {
+  const filteredData = getFilteredData();
   const hasData = data.length > 0;
-  
-  document.getElementById('emptyState').classList.toggle('hidden', hasData);
-  document.getElementById('tableView').classList.toggle('hidden', !hasData || isCardView);
-  document.getElementById('cardView').classList.toggle('hidden', !hasData || !isCardView);
-  document.getElementById('sheetsNav').classList.toggle('hidden', sheets.length === 0);
-  document.getElementById('filterSection').classList.toggle('hidden', !hasData);
-  
-  document.getElementById('downloadBtn').disabled = !hasData;
-  document.getElementById('addRowBtn').disabled = !hasData;
-  
-  updateHistoryButtons();
-}
 
-function showToast(message, type = 'success') {
-  const container = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  
-  const icon = type === 'success' 
-    ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-    : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>';
-  
-  toast.innerHTML = `
-    <div class="flex items-center gap-2">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        ${icon}
-      </svg>
-      <span>${message}</span>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#E1EBED] via-[#F5F8F9] to-[#D7E7E7] p-4 md:p-6 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto relative z-10">
+        {/* Header */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-6 mb-6 border border-white/50">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+            <div>
+              <h1 
+                style={{
+                  background: `linear-gradient(to right, ${colors.sage}, ${colors.terracotta})`,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}
+                className="text-4xl font-bold mb-2"
+              >
+                Excel Editor Pro
+              </h1>
+              <p className="text-gray-600 flex items-center gap-2">
+                <Icons.Sparkles size={16} />
+                Professional Data Management System
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-3 flex-wrap">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer px-4 py-2 bg-white rounded-lg hover:shadow-md transition-all">
+                <input
+                  type="checkbox"
+                  checked={autoSave}
+                  onChange={(e) => setAutoSave(e.target.checked)}
+                  className="rounded"
+                />
+                <Icons.Save size={16} />
+                Auto-save
+              </label>
+              
+              <div className="flex bg-white rounded-xl p-1 shadow-lg border border-gray-100">
+                <button
+                  onClick={() => setIsCardView(false)}
+                  style={!isCardView ? {
+                    background: `linear-gradient(to right, ${colors.sage}, ${colors.mint})`
+                  } : {}}
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${!isCardView ? 'text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Icons.Grid size={16} />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+                <button
+                  onClick={() => setIsCardView(true)}
+                  style={isCardView ? {
+                    background: `linear-gradient(to right, ${colors.sage}, ${colors.mint})`
+                  } : {}}
+                  className={`px-4 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 ${isCardView ? 'text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                >
+                  <Icons.CreditCard size={16} />
+                  <span className="hidden sm:inline">Card</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: `linear-gradient(to right, ${colors.sage}, ${colors.terracotta})`
+              }}
+              className="px-6 py-3 rounded-xl shadow-lg font-medium flex items-center gap-2 text-white hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            >
+              <Icons.Upload size={18} />
+              Upload
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            
+            <button
+              onClick={downloadFile}
+              disabled={!hasData}
+              style={{
+                background: `linear-gradient(to right, ${colors.mint}, ${colors.cream})`
+              }}
+              className="px-6 py-3 rounded-xl shadow-lg font-medium flex items-center gap-2 text-gray-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+            >
+              <Icons.Download size={18} />
+              Download
+            </button>
+            
+            <button
+              onClick={undo}
+              disabled={historyIndex <= 0}
+              className="p-3 rounded-xl bg-white shadow-md border-2 border-gray-100 hover:shadow-lg transition-all disabled:opacity-50"
+              title="Undo"
+            >
+              <Icons.Undo size={18} />
+            </button>
+            
+            <button
+              onClick={redo}
+              disabled={historyIndex >= history.length - 1}
+              className="p-3 rounded-xl bg-white shadow-md border-2 border-gray-100 hover:shadow-lg transition-all disabled:opacity-50"
+              title="Redo"
+            >
+              <Icons.Redo size={18} />
+            </button>
+            
+            <button
+              onClick={addRow}
+              disabled={!hasData}
+              style={{
+                background: `linear-gradient(to right, ${colors.sage}, ${colors.mint})`
+              }}
+              className="px-6 py-3 rounded-xl shadow-lg font-medium flex items-center gap-2 text-white hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 disabled:opacity-50"
+            >
+              <Icons.Plus size={18} />
+              Add Row
+            </button>
+            
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="px-6 py-3 rounded-xl bg-white shadow-md border-2 border-gray-100 font-medium flex items-center gap-2 hover:shadow-lg transition-all"
+            >
+              <Icons.History size={18} />
+              Files
+            </button>
+          </div>
+        </div>
+
+        {/* Search */}
+        {hasData && (
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl p-6 mb-6 border border-white/50">
+            <div className="relative">
+              <Icons.Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search across all columns..."
+                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 transition-all bg-white/80 backdrop-blur-sm"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* History Panel */}
+        {showHistory && (
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-xl p-6 mb-6 border border-white/50">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-800">Saved Files</h3>
+              <button
+                onClick={() => {
+                  localStorage.removeItem('excelFileHistory');
+                  setShowHistory(false);
+                  showToast('History cleared');
+                }}
+                className="text-red-500 hover:text-red-700 font-medium px-3 py-1 hover:bg-red-50 rounded-lg"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {JSON.parse(localStorage.getItem('excelFileHistory') || '[]').map((file, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    loadFileFromHistory(file);
+                    setShowHistory(false);
+                  }}
+                  className="p-4 bg-gradient-to-r from-white to-gray-50 rounded-xl border-2 border-gray-100 cursor-pointer transition-all hover:shadow-md hover:translate-x-1"
+                >
+                  <p className="font-semibold text-gray-800">{file.fileName}</p>
+                  <p className="text-sm text-gray-600">{new Date(file.timestamp).toLocaleString()}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Data View */}
+        {!hasData ? (
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-12 text-center border border-white/50">
+            <div className="mb-6">
+              <Icons.Upload className="mx-auto text-gray-300" size={64} />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Data Yet</h2>
+            <p className="text-gray-600 mb-6">Upload an Excel file to get started</p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                background: `linear-gradient(to right, ${colors.sage}, ${colors.terracotta})`
+              }}
+              className="px-8 py-4 rounded-xl shadow-lg font-medium text-white hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+            >
+              Choose File
+            </button>
+          </div>
+        ) : isCardView ? (
+          <div>
+            <div className="flex justify-between items-center bg-white/80 backdrop-blur-xl rounded-xl p-4 shadow-lg mb-4">
+              <span className="font-semibold text-gray-800">
+                Card {currentCardIndex + 1} of {filteredData.length}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
+                  disabled={currentCardIndex === 0}
+                  className="p-2 rounded-lg bg-white shadow border-2 border-gray-200 transition-all disabled:opacity-50"
+                >
+                  <Icons.ChevronLeft size={20} />
+                </button>
+                <button
+                  onClick={() => deleteRow(data.indexOf(filteredData[currentCardIndex]))}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-all"
+                >
+                  <Icons.Trash2 size={20} />
+                </button>
+                <button
+                  onClick={() => setCurrentCardIndex(Math.min(filteredData.length - 1, currentCardIndex + 1))}
+                  disabled={currentCardIndex === filteredData.length - 1}
+                  style={{
+                    background: `linear-gradient(to right, ${colors.sage}, ${colors.mint})`
+                  }}
+                  className="p-2 rounded-lg text-white shadow disabled:opacity-50 transition-all"
+                >
+                  <Icons.ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-white/50">
+              <div className="space-y-4">
+                {headers.map(header => (
+                  <div key={header} className="border-b border-gray-100 pb-4 last:border-0">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      {header}
+                    </label>
+                    <CellInput
+                      rowIndex={data.indexOf(filteredData[currentCardIndex])}
+                      header={header}
+                      value={filteredData[currentCardIndex][header]}
+                      isCard={true}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl overflow-hidden border border-white/50">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead 
+                  style={{
+                    background: `linear-gradient(to right, ${colors.sage}, ${colors.terracotta})`
+                  }}
+                  className="text-white"
+                >
+                  <tr>
+                    <th className="px-4 py-3 text-left font-semibold sticky top-0">Actions</th>
+                    {headers.map(header => (
+                      <th key={header} className="px-4 py-3 text-left font-semibold whitespace-nowrap sticky top-0">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredData.map((row, idx) => {
+                    const originalIndex = data.indexOf(row);
+                    return (
+                      <tr
+                        key={idx}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-all"
+                      >
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => deleteRow(originalIndex)}
+                            className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-all"
+                          >
+                            <Icons.Trash2 size={16} />
+                          </button>
+                        </td>
+                        {headers.map(header => (
+                          <td key={header} className="px-4 py-2">
+                            <CellInput
+                              rowIndex={originalIndex}
+                              header={header}
+                              value={row[header]}
+                              isCard={false}
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Toast Notifications */}
+      {toast.show && (
+        <div
+          style={{
+            background: toast.type === 'success' 
+              ? 'linear-gradient(to right, #10b981, #059669)' 
+              : 'linear-gradient(to right, #ef4444, #dc2626)'
+          }}
+          className="fixed top-6 right-6 z-50 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 text-white"
+        >
+          {toast.type === 'success' ? (
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <Icons.X size={24} />
+          )}
+          <span className="font-medium">{toast.message}</span>
+        </div>
+      )}
     </div>
-  `;
-  
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.classList.add('hiding');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
+  );
+};
 
-function handleKeyboardShortcuts(e) {
-  // Undo: Ctrl+Z or Cmd+Z
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-    e.preventDefault();
-    undo();
-    showToast('Undo', 'success');
-  }
-  // Redo: Ctrl+Y or Cmd+Shift+Z
-  else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-    e.preventDefault();
-    redo();
-    showToast('Redo', 'success');
-  }
-  // Save: Ctrl+S or Cmd+S
-  else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-    e.preventDefault();
-    saveToStorage();
-    showToast('Saved', 'success');
-  }
-  // Card navigation with arrow keys (only in card view)
-  else if (isCardView && !e.target.matches('input, textarea, select')) {
-    if (e.key === 'ArrowLeft' && currentCardIndex > 0) {
-      e.preventDefault();
-      navigateCard(-1);
-    } else if (e.key === 'ArrowRight') {
-      e.preventDefault();
-      navigateCard(1);
-    }
-  }
-}
-
-// Auto-save before page unload
-window.addEventListener('beforeunload', () => {
-  if (autoSaveEnabled && data.length > 0) {
-    saveToStorage();
-  }
-});
-
-// Initialize UI state
-updateUI();
+// Render the app
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(ExcelEditorPro));
