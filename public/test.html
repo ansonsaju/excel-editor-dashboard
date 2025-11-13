@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Page - Excel Editor Pro</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #E1EBED 0%, #D7E7E7 100%);
+      min-height: 100vh;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #6D7F6C;
+      margin-bottom: 20px;
+    }
+    .status {
+      padding: 10px;
+      border-radius: 6px;
+      margin: 10px 0;
+    }
+    .success {
+      background: #d1fae5;
+      color: #065f46;
+      border-left: 4px solid #10b981;
+    }
+    .error {
+      background: #fee2e2;
+      color: #991b1b;
+      border-left: 4px solid #ef4444;
+    }
+    .info {
+      background: #dbeafe;
+      color: #1e40af;
+      border-left: 4px solid #3b82f6;
+    }
+    button {
+      background: linear-gradient(to right, #6D7F6C, #C68A60);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    pre {
+      background: #f3f4f6;
+      padding: 15px;
+      border-radius: 6px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>✅ Railway Deployment Test Page</h1>
+    
+    <div class="status success">
+      <strong>✓ Success!</strong> Your server is running and serving static files correctly.
+    </div>
+    
+    <h2>📋 Deployment Checklist:</h2>
+    <div id="checklist"></div>
+    
+    <h2>🔍 Quick Tests:</h2>
+    <button onclick="testHealth()">Test /health Endpoint</button>
+    <button onclick="testStatus()">Test /api/status Endpoint</button>
+    <button onclick="window.location.href='/'">Go to Main App</button>
+    
+    <div id="test-results"></div>
+    
+    <h2>📁 Required File Structure:</h2>
+    <pre>
+project-root/
+├── package.json
+├── server.js
+├── railway.toml (optional)
+└── public/
+    ├── index.html
+    ├── app.js
+    └── test.html (this file)
+    </pre>
+    
+    <div class="status info">
+      <strong>ℹ️ Next Steps:</strong>
+      <ol style="margin-top: 10px;">
+        <li>Make sure <code>public/app.js</code> file exists and contains the React component</li>
+        <li>Verify all CDN links are loading (React, Babel, Tailwind, SheetJS)</li>
+        <li>Check browser console for any JavaScript errors</li>
+        <li>If the main app shows a blank page, check the Deploy Logs in Railway</li>
+      </ol>
+    </div>
+  </div>
+  
+  <script>
+    // Checklist items
+    const checks = [
+      { name: 'Server Running', status: true, desc: 'Express server is active' },
+      { name: 'Static Files Serving', status: true, desc: 'You can see this page' },
+      { name: 'Railway Deployment', status: true, desc: 'App is deployed on Railway' },
+      { name: 'app.js File', status: '?', desc: 'Need to verify main React app loads' }
+    ];
+    
+    const checklistDiv = document.getElementById('checklist');
+    checks.forEach(check => {
+      const statusIcon = check.status === true ? '✅' : check.status === false ? '❌' : '⚠️';
+      checklistDiv.innerHTML += `
+        <div style="padding: 8px; margin: 5px 0; background: #f9fafb; border-radius: 6px;">
+          ${statusIcon} <strong>${check.name}:</strong> ${check.desc}
+        </div>
+      `;
+    });
+    
+    async function testHealth() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<div style="margin-top: 20px;">Testing /health endpoint...</div>';
+      
+      try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        resultsDiv.innerHTML = `
+          <div class="status success" style="margin-top: 20px;">
+            <strong>✓ /health endpoint working!</strong>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+      } catch (error) {
+        resultsDiv.innerHTML = `
+          <div class="status error" style="margin-top: 20px;">
+            <strong>✗ Error:</strong> ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    async function testStatus() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '<div style="margin-top: 20px;">Testing /api/status endpoint...</div>';
+      
+      try {
+        const response = await fetch('/api/status');
+        const data = await response.json();
+        resultsDiv.innerHTML = `
+          <div class="status success" style="margin-top: 20px;">
+            <strong>✓ /api/status endpoint working!</strong>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          </div>
+        `;
+      } catch (error) {
+        resultsDiv.innerHTML = `
+          <div class="status error" style="margin-top: 20px;">
+            <strong>✗ Error:</strong> ${error.message}
+          </div>
+        `;
+      }
+    }
+    
+    // Check if app.js exists
+    fetch('/app.js')
+      .then(response => {
+        if (response.ok) {
+          console.log('✅ app.js file found');
+        } else {
+          console.error('❌ app.js file not found');
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error checking app.js:', error);
+      });
+  </script>
+</body>
+</html>
