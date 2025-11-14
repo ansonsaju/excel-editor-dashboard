@@ -4,599 +4,845 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Excel Editor Pro</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        *{font-family:'Inter',sans-serif;scrollbar-width:thin;scrollbar-color:#D4A574 #E8DCC8}
-        *::-webkit-scrollbar{width:10px;height:10px}
-        *::-webkit-scrollbar-track{background:#E8DCC8;border-radius:5px}
-        *::-webkit-scrollbar-thumb{background:linear-gradient(135deg,#6D776E,#D4A574);border-radius:5px;border:2px solid #E8DCC8}
-        .glass-effect{background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-        .animate-fade-in{animation:fadeIn 0.3s ease-out}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        .animate-slide-in{animation:slideIn 0.3s ease-out}
-        @keyframes slideIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
-        .suggestion-item{padding:10px 12px;cursor:pointer;transition:all 0.15s;border-bottom:1px solid #E8DCC8;display:flex;justify-content:space-between;align-items:center}
-        .suggestion-item:last-child{border-bottom:none}
-        .suggestion-item:hover{background:#FFF8EB;padding-left:16px}
-        input[type="checkbox"]{accent-color:#D4A574}
-        .japanese-pattern{background-image:repeating-linear-gradient(45deg,transparent,transparent 35px,rgba(212,165,116,0.03) 35px,rgba(212,165,116,0.03) 70px)}
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #FFF8EB 0%, #F5EFE6 50%, #E8DCC8 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .header-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid #E8DCC8;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #6D776E, #D4A574);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #6D776E;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(to right, #6D776E, #D4A574);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .btn-secondary {
+            background: white;
+            color: #6D776E;
+            border: 2px solid #D4A574;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        button:disabled:hover {
+            transform: none;
+        }
+        .empty-state {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 60px;
+            text-align: center;
+            border: 1px solid #E8DCC8;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .empty-state h2 {
+            font-size: 2rem;
+            color: #2C3E2F;
+            margin: 20px 0 12px;
+        }
+        .empty-state p {
+            color: #6D776E;
+            font-size: 1.125rem;
+            margin-bottom: 24px;
+        }
+        .filter-section {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #E8DCC8;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 2px solid #E8DCC8;
+            border-radius: 12px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .search-box input:focus {
+            outline: none;
+            border-color: #D4A574;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .filter-item label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6D776E;
+            margin-bottom: 6px;
+        }
+        .filter-item select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #E8DCC8;
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        .filter-item select:focus {
+            outline: none;
+            border-color: #D4A574;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        thead {
+            background: linear-gradient(to right, #6D776E, #D4A574);
+            color: white;
+        }
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 14px;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #E8DCC8;
+        }
+        tr:hover {
+            background: rgba(255, 248, 235, 0.5);
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 2px solid #E8DCC8;
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.8);
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #D4A574;
+            box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.1);
+        }
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            padding: 16px 24px;
+            background: linear-gradient(to right, #10b981, #059669);
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .hidden {
+            display: none;
+        }
+        .view-toggle {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid #E8DCC8;
+        }
+        .view-toggle button {
+            padding: 8px 16px;
+            background: transparent;
+            color: #6D776E;
+            border: none;
+            border-radius: 8px;
+        }
+        .view-toggle button.active {
+            background: linear-gradient(to right, #6D776E, #D4A574);
+            color: white;
+        }
+        .card-view {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid #E8DCC8;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .card-field {
+            margin-bottom: 20px;
+            padding: 12px;
+            border-bottom: 1px solid #E8DCC8;
+            border-radius: 12px;
+            transition: background 0.2s;
+        }
+        .card-field:hover {
+            background: rgba(255, 248, 235, 0.5);
+        }
+        .card-field label {
+            display: block;
+            font-weight: 700;
+            color: #2C3E2F;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .card-nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 24px;
+            border: 1px solid #E8DCC8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-btn {
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .delete-btn:hover {
+            background: #dc2626;
+        }
+        .suggestions-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #D4A574;
+            border-radius: 12px;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 100;
+        }
+        .suggestion-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #E8DCC8;
+        }
+        .suggestion-item:hover {
+            background: #FFF8EB;
+        }
+        .suggestion-badge {
+            font-size: 10px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 700;
+        }
+        .badge-common {
+            background: #D4A574;
+            color: white;
+        }
+        .badge-recent {
+            background: #6D776E;
+            color: white;
+        }
+        .badge-avg {
+            background: #3b82f6;
+            color: white;
+        }
+        input[type="checkbox"] {
+            accent-color: #D4A574;
+            width: 16px;
+            height: 16px;
+        }
+        .checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            border: 1px solid #E8DCC8;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .icon {
+            width: 48px;
+            height: 48px;
+            color: #D4A574;
+        }
     </style>
 </head>
-<body class="japanese-pattern">
-    <div class="min-h-screen p-4 relative overflow-hidden">
-        <div class="fixed inset-0 pointer-events-none opacity-5">
-            <svg class="absolute top-10 right-10 w-64 h-64" viewBox="0 0 200 200">
-                <circle cx="100" cy="40" r="35" fill="#D4A574"/>
-                <path d="M30,120 Q50,80 70,120 T110,120 T150,120 T190,120" stroke="#6D776E" stroke-width="2" fill="none"/>
-                <rect x="80" y="80" width="40" height="60" fill="#2C3E2F" opacity="0.8"/>
-                <rect x="85" y="95" width="30" height="20" fill="#FFF8EB"/>
-            </svg>
+<body>
+    <div class="container">
+        <div class="header-card">
+            <div class="header-top">
+                <div class="header-left">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <line x1="9" y1="3" x2="9" y2="21"/>
+                        <line x1="15" y1="3" x2="15" y2="21"/>
+                        <line x1="3" y1="9" x2="21" y2="9"/>
+                        <line x1="3" y1="15" x2="21" y2="15"/>
+                    </svg>
+                    <div>
+                        <h1>Excel Editor Pro</h1>
+                        <p class="subtitle">Professional Data Management System</p>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="autoSave" checked>
+                        <span>Auto-save</span>
+                    </label>
+                    <div class="view-toggle">
+                        <button id="tableViewBtn" class="active">📊 Table</button>
+                        <button id="cardViewBtn">📇 Card</button>
+                    </div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                <button id="uploadBtn" class="btn-primary">📤 Upload File</button>
+                <button id="downloadBtn" class="btn-secondary" disabled>📥 Download</button>
+                <button id="undoBtn" class="btn-secondary" disabled>↶ Undo</button>
+                <button id="redoBtn" class="btn-secondary" disabled>↷ Redo</button>
+                <button id="addRowBtn" class="btn-primary" disabled>➕ Add Row</button>
+                <button id="historyBtn" class="btn-secondary">🕐 Files</button>
+            </div>
         </div>
 
-        <div id="toastContainer" class="fixed top-6 right-6 z-50"></div>
+        <div id="filterSection" class="filter-section hidden">
+            <div class="search-box">
+                <input type="text" id="globalSearch" placeholder="Search across all columns...">
+            </div>
+            <div id="filterContainer" class="filter-grid"></div>
+        </div>
 
-        <div class="max-w-7xl mx-auto">
-            <div class="glass-effect rounded-2xl shadow-2xl p-6 mb-6 border border-[#E8DCC8]">
-                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-                    <div class="flex items-center gap-4">
-                        <svg class="w-12 h-12 text-[#D4A574]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="18" height="18" rx="2"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                            <line x1="15" y1="3" x2="15" y2="21"/>
-                            <line x1="3" y1="9" x2="21" y2="9"/>
-                            <line x1="3" y1="15" x2="21" y2="15"/>
-                        </svg>
-                        <div>
-                            <h1 class="text-4xl font-bold bg-gradient-to-r from-[#6D776E] to-[#D4A574] bg-clip-text text-transparent">Excel Editor Pro</h1>
-                            <p class="text-[#6D776E] font-medium">Professional Data Management System</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <label class="flex items-center gap-2 px-4 py-2 glass-effect rounded-lg border border-[#E8DCC8] cursor-pointer hover:bg-white/80 transition-all">
-                            <input type="checkbox" id="autoSave" checked class="rounded">
-                            <span class="text-sm font-medium text-[#2C3E2F]">Auto-save</span>
-                        </label>
-                        <div class="inline-flex glass-effect rounded-xl p-1 border border-[#E8DCC8]">
-                            <button id="tableViewBtn" class="px-4 py-2 rounded-lg font-medium transition-all bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white shadow-lg">
-                                <svg class="inline-block w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                                    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                                </svg>Table
-                            </button>
-                            <button id="cardViewBtn" class="px-4 py-2 rounded-lg font-medium transition-all text-[#6D776E] hover:bg-white/50">
-                                <svg class="inline-block w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="2" y="3" width="20" height="18" rx="2"/>
-                                    <line x1="2" y1="9" x2="22" y2="9"/>
-                                </svg>Card
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex flex-wrap gap-3">
-                    <input type="file" id="fileInput" accept=".xlsx,.xls" class="hidden">
-                    <button id="uploadBtn" class="px-6 py-3 bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-medium">
-                        <svg class="inline-block w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                        </svg>Upload File
-                    </button>
-                    <button id="downloadBtn" disabled class="px-6 py-3 bg-white border-2 border-[#D4A574] text-[#6D776E] rounded-lg shadow hover:shadow-lg transform hover:-translate-y-0.5 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                        <svg class="inline-block w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-                        </svg>Download
-                    </button>
-                    <button id="undoBtn" disabled class="px-4 py-3 bg-white border-2 border-[#E8DCC8] text-[#6D776E] rounded-lg hover:border-[#D4A574] transition-all disabled:opacity-50" title="Undo">
-                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-9 9"/>
-                        </svg>
-                    </button>
-                    <button id="redoBtn" disabled class="px-4 py-3 bg-white border-2 border-[#E8DCC8] text-[#6D776E] rounded-lg hover:border-[#D4A574] transition-all disabled:opacity-50" title="Redo">
-                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 7v6h-6M3 17a9 9 0 019-9 9 9 0 019 9"/>
-                        </svg>
-                    </button>
-                    <button id="addRowBtn" disabled class="px-6 py-3 bg-gradient-to-r from-[#D4A574] to-[#C19563] text-white rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-medium disabled:opacity-50">
-                        <svg class="inline-block w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>Add Row
-                    </button>
-                    <button id="historyBtn" class="px-6 py-3 bg-white border-2 border-[#E8DCC8] text-[#6D776E] rounded-lg hover:border-[#D4A574] transition-all font-medium">
-                        <svg class="inline-block w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 3v5h5M3.05 13A9 9 0 1 0 6 5.3L3 8"/>
-                        </svg>Files
-                    </button>
+        <div id="historyPanel" class="filter-section hidden">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 16px;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #2C3E2F;">Saved Files</h3>
+                <button id="clearHistoryBtn" style="color: #ef4444; background: none; border: none; padding: 4px 12px;">Clear All</button>
+            </div>
+            <div id="historyList"></div>
+        </div>
+
+        <div id="emptyState" class="empty-state">
+            <svg style="width: 96px; height: 96px; color: #D4A574; margin: 0 auto;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            <h2>No Data Yet</h2>
+            <p>Upload an Excel file to start managing your data</p>
+            <button id="emptyStateBtn" class="btn-primary" style="font-size: 1.125rem; padding: 16px 32px;">Choose File</button>
+        </div>
+
+        <div id="cardViewContainer" class="hidden">
+            <div class="card-nav">
+                <div id="cardCounter" style="font-weight: 700; color: #2C3E2F;">Card 1 of 0</div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="prevCard" class="btn-secondary">← Previous</button>
+                    <button id="deleteCard" class="delete-btn">🗑️ Delete</button>
+                    <button id="nextCard" class="btn-primary">Next →</button>
                 </div>
             </div>
+            <div id="cardContent" class="card-view"></div>
+        </div>
 
-            <div id="filterSection" class="hidden glass-effect rounded-2xl shadow-xl p-4 mb-6 border border-[#E8DCC8] animate-fade-in">
-                <div class="relative mb-4">
-                    <svg class="absolute left-3 top-3 w-5 h-5 text-[#D4A574]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                    </svg>
-                    <input type="text" id="globalSearch" placeholder="Search across all columns..." class="w-full pl-10 pr-4 py-3 glass-effect border-2 border-[#E8DCC8] rounded-xl focus:border-[#D4A574] focus:ring-2 focus:ring-[#D4A574]/20 transition-all outline-none">
-                </div>
-                <div id="filterContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"></div>
-            </div>
-
-            <div id="historyPanel" class="hidden glass-effect rounded-2xl shadow-xl p-6 mb-6 border border-[#E8DCC8] animate-slide-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-[#2C3E2F]">Saved Files</h3>
-                    <button id="clearHistoryBtn" class="text-red-500 text-sm font-medium hover:text-red-700 px-3 py-1 hover:bg-red-50 rounded transition-all">Clear All</button>
-                </div>
-                <div id="historyList" class="space-y-3 max-h-80 overflow-y-auto"></div>
-            </div>
-
-            <div id="emptyState" class="glass-effect rounded-2xl shadow-2xl p-12 text-center border border-[#E8DCC8] animate-fade-in">
-                <svg class="mx-auto w-24 h-24 text-[#D4A574] mb-6" style="animation:pulse 2s infinite" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                </svg>
-                <h2 class="text-3xl font-bold text-[#2C3E2F] mb-3">No Data Yet</h2>
-                <p class="text-[#6D776E] mb-6 text-lg">Upload an Excel file to start managing your data</p>
-                <button id="emptyStateBtn" class="px-8 py-4 bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-medium text-lg">Choose File</button>
-            </div>
-
-            <div id="cardViewContainer" class="hidden">
-                <div class="glass-effect rounded-2xl shadow-xl p-4 mb-6 border border-[#E8DCC8]">
-                    <div class="flex justify-between items-center">
-                        <div id="cardCounter" class="text-[#2C3E2F] font-bold flex items-center gap-2">
-                            <svg class="w-5 h-5 text-[#D4A574]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/>
-                            </svg>
-                            Card 1 of 0
-                        </div>
-                        <div class="flex gap-3">
-                            <button id="prevCard" class="px-4 py-2 bg-white border-2 border-[#E8DCC8] text-[#6D776E] rounded-lg hover:border-[#D4A574] transition-all">← Previous</button>
-                            <button id="deleteCard" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg">🗑️ Delete</button>
-                            <button id="nextCard" class="px-4 py-2 bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white rounded-lg hover:shadow-lg transition-all">Next →</button>
-                        </div>
-                    </div>
-                </div>
-                <div id="cardContent" class="glass-effect rounded-2xl shadow-2xl p-8 border border-[#E8DCC8]"></div>
-            </div>
-
-            <div id="tableView" class="hidden glass-effect rounded-2xl shadow-2xl overflow-hidden border border-[#E8DCC8]">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white sticky top-0 z-10">
-                            <tr id="tableHeader"></tr>
-                        </thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
+        <div id="tableViewContainer" class="hidden">
+            <div style="overflow-x: auto;">
+                <table id="dataTable">
+                    <thead>
+                        <tr id="tableHeader"></tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
             </div>
         </div>
     </div>
+
+    <div id="toastContainer" style="position: fixed; top: 24px; right: 24px; z-index: 1000;"></div>
 
     <script>
-// Excel Editor Pro - Complete JavaScript
-console.log('App starting...');
-console.log('XLSX available:', typeof XLSX !== 'undefined');
-
-let workbook = null;
-let data = [];
-let headers = [];
-let history = [];
-let historyIndex = -1;
-let filters = {};
-let searchTerm = '';
-let currentCardIndex = 0;
-let isCardView = false;
-let autoSave = true;
-let currentFileName = '';
-let customSuggestions = {};
-let saveTimeout = null;
+let workbook = null, data = [], headers = [], history = [], historyIndex = -1;
+let filters = {}, searchTerm = '', currentCardIndex = 0, isCardView = false;
+let autoSave = true, currentFileName = '', customSuggestions = {}, saveTimeout = null;
 
 function showToast(message, type = 'success') {
-  const toastContainer = document.getElementById('toastContainer');
-  const toast = document.createElement('div');
-  toast.className = `px-6 py-3 rounded-xl shadow-2xl backdrop-blur-lg animate-slide-in ${
-    type === 'success' 
-      ? 'bg-gradient-to-r from-emerald-500/90 to-green-600/90 text-white' 
-      : 'bg-gradient-to-r from-red-500/90 to-rose-600/90 text-white'
-  }`;
-  toast.innerHTML = `
-    <div class="flex items-center gap-3">
-      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        ${type === 'success' ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14M22 4L12 14.01l-3-3"/>' : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}
-      </svg>
-      <span class="font-medium">${message}</span>
-    </div>
-  `;
-  toastContainer.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerHTML = `<strong>${type === 'success' ? '✓' : '✗'}</strong> ${message}`;
+    document.getElementById('toastContainer').appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 async function handleFileUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  
-  currentFileName = file.name;
-  try {
-    const arrayBuffer = await file.arrayBuffer();
-    workbook = XLSX.read(arrayBuffer);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
-    
-    if (jsonData.length > 0) {
-      headers = Object.keys(jsonData[0]);
-      data = jsonData;
-      history = [JSON.parse(JSON.stringify(data))];
-      historyIndex = 0;
-      filters = {};
-      searchTerm = '';
-      currentCardIndex = 0;
-      analyzeDataForSuggestions();
-      saveFileHistory();
-      render();
-      showToast('File uploaded successfully! 🎉');
+    const file = e.target.files[0];
+    if (!file) return;
+    currentFileName = file.name;
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        workbook = XLSX.read(arrayBuffer);
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        if (jsonData.length > 0) {
+            headers = Object.keys(jsonData[0]);
+            data = jsonData;
+            history = [JSON.parse(JSON.stringify(data))];
+            historyIndex = 0;
+            filters = {}; searchTerm = ''; currentCardIndex = 0;
+            analyzeDataForSuggestions();
+            saveFileHistory();
+            render();
+            showToast('File uploaded successfully!');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error loading file', 'error');
     }
-  } catch (error) {
-    console.error('Error:', error);
-    showToast('Error loading file', 'error');
-  }
 }
 
 function analyzeDataForSuggestions() {
-  customSuggestions = {};
-  
-  headers.forEach(header => {
-    const values = data.map(row => row[header]).filter(v => v !== '' && v !== '-');
-    const valueCounts = {};
-    values.forEach(v => valueCounts[v] = (valueCounts[v] || 0) + 1);
-    
-    const sorted = Object.entries(valueCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([val, count]) => ({ value: val, count }));
-    
-    const recent = [...new Set(values.slice(-5))].map(val => ({ value: val }));
-    
-    const numericValues = values.filter(v => !isNaN(v) && v !== '').map(Number);
-    if (numericValues.length > 2) {
-      const avg = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
-      customSuggestions[header] = {
-        frequent: sorted,
-        recent,
-        avg: Math.round(avg * 100) / 100
-      };
-    } else {
-      customSuggestions[header] = { frequent: sorted, recent };
-    }
-  });
+    customSuggestions = {};
+    headers.forEach(header => {
+        const values = data.map(row => row[header]).filter(v => v !== '' && v !== '-');
+        const valueCounts = {};
+        values.forEach(v => valueCounts[v] = (valueCounts[v] || 0) + 1);
+        const sorted = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([val, count]) => ({ value: val, count }));
+        const recent = [...new Set(values.slice(-5))].map(val => ({ value: val }));
+        const numericValues = values.filter(v => !isNaN(v) && v !== '').map(Number);
+        if (numericValues.length > 2) {
+            const avg = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
+            customSuggestions[header] = { frequent: sorted, recent, avg: Math.round(avg * 100) / 100 };
+        } else {
+            customSuggestions[header] = { frequent: sorted, recent };
+        }
+    });
 }
 
 function getSuggestionsForField(header) {
-  const fieldSuggestions = customSuggestions[header];
-  if (!fieldSuggestions) return [];
-  
-  const allSuggestions = [];
-  fieldSuggestions.frequent?.forEach(item => {
-    allSuggestions.push({ value: item.value, label: `${item.value}`, badge: 'Common', count: item.count });
-  });
-  fieldSuggestions.recent?.forEach(item => {
-    if (!allSuggestions.find(s => s.value === item.value)) {
-      allSuggestions.push({ value: item.value, label: `${item.value}`, badge: 'Recent' });
+    const fieldSuggestions = customSuggestions[header];
+    if (!fieldSuggestions) return [];
+    const allSuggestions = [];
+    fieldSuggestions.frequent?.forEach(item => {
+        allSuggestions.push({ value: item.value, label: `${item.value}`, badge: 'Common', count: item.count, class: 'badge-common' });
+    });
+    fieldSuggestions.recent?.forEach(item => {
+        if (!allSuggestions.find(s => s.value === item.value)) {
+            allSuggestions.push({ value: item.value, label: `${item.value}`, badge: 'Recent', class: 'badge-recent' });
+        }
+    });
+    if (fieldSuggestions.avg && !allSuggestions.find(s => s.value === fieldSuggestions.avg)) {
+        allSuggestions.push({ value: fieldSuggestions.avg, label: `${fieldSuggestions.avg} (Avg)`, badge: 'Average', class: 'badge-avg' });
     }
-  });
-  if (fieldSuggestions.avg && !allSuggestions.find(s => s.value === fieldSuggestions.avg)) {
-    allSuggestions.push({ value: fieldSuggestions.avg, label: `${fieldSuggestions.avg} (Avg)`, badge: 'Average' });
-  }
-  return allSuggestions.slice(0, 12);
+    return allSuggestions.slice(0, 12);
 }
 
 function updateCell(rowIndex, header, value) {
-  data[rowIndex][header] = value;
-  addToHistory();
-  analyzeDataForSuggestions();
-  render();
-  debouncedSave();
+    data[rowIndex][header] = value;
+    addToHistory();
+    analyzeDataForSuggestions();
+    render();
+    debouncedSave();
 }
 
 function addToHistory() {
-  const newHistory = history.slice(0, historyIndex + 1);
-  newHistory.push(JSON.parse(JSON.stringify(data)));
-  if (newHistory.length > 50) newHistory.shift();
-  else historyIndex = newHistory.length - 1;
-  history = newHistory;
-  updateButtons();
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(data)));
+    if (newHistory.length > 50) newHistory.shift();
+    else historyIndex = newHistory.length - 1;
+    history = newHistory;
+    updateButtons();
 }
 
 function undo() {
-  if (historyIndex > 0) {
-    historyIndex--;
-    data = JSON.parse(JSON.stringify(history[historyIndex]));
-    render();
-    showToast('Undo successful');
-  }
+    if (historyIndex > 0) {
+        historyIndex--;
+        data = JSON.parse(JSON.stringify(history[historyIndex]));
+        render();
+        showToast('Undo successful');
+    }
 }
 
 function redo() {
-  if (historyIndex < history.length - 1) {
-    historyIndex++;
-    data = JSON.parse(JSON.stringify(history[historyIndex]));
-    render();
-    showToast('Redo successful');
-  }
+    if (historyIndex < history.length - 1) {
+        historyIndex++;
+        data = JSON.parse(JSON.stringify(history[historyIndex]));
+        render();
+        showToast('Redo successful');
+    }
 }
 
 function addRow() {
-  const newRow = {};
-  headers.forEach(h => newRow[h] = '');
-  data.push(newRow);
-  addToHistory();
-  render();
-  showToast('Row added ✨');
-  if (isCardView) {
-    currentCardIndex = getFilteredData().length - 1;
-    renderCardView();
-  }
+    const newRow = {};
+    headers.forEach(h => newRow[h] = '');
+    data.push(newRow);
+    addToHistory();
+    render();
+    showToast('Row added');
+    if (isCardView) {
+        currentCardIndex = getFilteredData().length - 1;
+        renderCardView();
+    }
 }
 
 function deleteRow(index) {
-  if (confirm('Delete this row?')) {
-    data.splice(index, 1);
-    addToHistory();
-    render();
-    showToast('Row deleted');
-  }
+    if (confirm('Delete this row?')) {
+        data.splice(index, 1);
+        addToHistory();
+        render();
+        showToast('Row deleted');
+    }
 }
 
 function handleDownload() {
-  if (data.length === 0) return;
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
-  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-  const fileName = currentFileName ? currentFileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) : `edited_${Date.now()}.xlsx`;
-  XLSX.writeFile(wb, fileName);
-  showToast('File downloaded successfully! 📥');
+    if (data.length === 0) return;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    const fileName = currentFileName ? currentFileName.replace('.xlsx', `_edited_${Date.now()}.xlsx`) : `edited_${Date.now()}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('File downloaded successfully!');
 }
 
 function saveFileHistory() {
-  const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-  const fileEntry = {
-    fileName: currentFileName,
-    timestamp: new Date().toISOString(),
-    rows: data.length,
-    state: { data, headers, filters, searchTerm, currentCardIndex, isCardView }
-  };
-  const existingIndex = fileHistory.findIndex(f => f.fileName === currentFileName);
-  if (existingIndex >= 0) fileHistory.splice(existingIndex, 1);
-  fileHistory.unshift(fileEntry);
-  localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
+    const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+    const fileEntry = {
+        fileName: currentFileName,
+        timestamp: new Date().toISOString(),
+        rows: data.length,
+        state: { data, headers, filters, searchTerm, currentCardIndex, isCardView }
+    };
+    const existingIndex = fileHistory.findIndex(f => f.fileName === currentFileName);
+    if (existingIndex >= 0) fileHistory.splice(existingIndex, 1);
+    fileHistory.unshift(fileEntry);
+    localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory.slice(0, 10)));
 }
 
 function saveToStorage() {
-  if (!autoSave || data.length === 0) return;
-  if (currentFileName) {
-    const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-    if (fileHistory.length > 0) {
-      fileHistory[0].state = { data, headers, filters, searchTerm, currentCardIndex, isCardView };
-      localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory));
+    if (!autoSave || data.length === 0) return;
+    if (currentFileName) {
+        const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+        if (fileHistory.length > 0) {
+            fileHistory[0].state = { data, headers, filters, searchTerm, currentCardIndex, isCardView };
+            localStorage.setItem('excelFileHistory', JSON.stringify(fileHistory));
+        }
     }
-  }
 }
 
 function debouncedSave() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => saveToStorage(), 1000);
+    if (saveTimeout) clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => saveToStorage(), 1000);
 }
 
 function getFilteredData() {
-  return data.filter(row => {
-    const matchesFilters = Object.entries(filters).every(([key, value]) => String(row[key]) === String(value));
-    const matchesSearch = searchTerm === '' || Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesFilters && matchesSearch;
-  });
+    return data.filter(row => {
+        const matchesFilters = Object.entries(filters).every(([key, value]) => String(row[key]) === String(value));
+        const matchesSearch = searchTerm === '' || Object.values(row).some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()));
+        return matchesFilters && matchesSearch;
+    });
 }
 
 function updateButtons() {
-  document.getElementById('undoBtn').disabled = historyIndex <= 0;
-  document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
-  document.getElementById('downloadBtn').disabled = data.length === 0;
-  document.getElementById('addRowBtn').disabled = data.length === 0;
+    document.getElementById('undoBtn').disabled = historyIndex <= 0;
+    document.getElementById('redoBtn').disabled = historyIndex >= history.length - 1;
+    document.getElementById('downloadBtn').disabled = data.length === 0;
+    document.getElementById('addRowBtn').disabled = data.length === 0;
 }
 
 function render() {
-  updateButtons();
-  if (data.length === 0) {
-    document.getElementById('emptyState').classList.remove('hidden');
-    document.getElementById('tableView').classList.add('hidden');
-    document.getElementById('cardViewContainer').classList.add('hidden');
-    document.getElementById('filterSection').classList.add('hidden');
-    return;
-  }
-  
-  document.getElementById('emptyState').classList.add('hidden');
-  document.getElementById('filterSection').classList.remove('hidden');
-  renderFilters();
-  
-  if (isCardView) {
-    document.getElementById('tableView').classList.add('hidden');
-    document.getElementById('cardViewContainer').classList.remove('hidden');
-    renderCardView();
-  } else {
-    document.getElementById('cardViewContainer').classList.add('hidden');
-    document.getElementById('tableView').classList.remove('hidden');
-    renderTableView();
-  }
+    updateButtons();
+    if (data.length === 0) {
+        document.getElementById('emptyState').classList.remove('hidden');
+        document.getElementById('tableViewContainer').classList.add('hidden');
+        document.getElementById('cardViewContainer').classList.add('hidden');
+        document.getElementById('filterSection').classList.add('hidden');
+        return;
+    }
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('filterSection').classList.remove('hidden');
+    renderFilters();
+    if (isCardView) {
+        document.getElementById('tableViewContainer').classList.add('hidden');
+        document.getElementById('cardViewContainer').classList.remove('hidden');
+        renderCardView();
+    } else {
+        document.getElementById('cardViewContainer').classList.add('hidden');
+        document.getElementById('tableViewContainer').classList.remove('hidden');
+        renderTableView();
+    }
 }
 
 function renderFilters() {
-  document.getElementById('filterContainer').innerHTML = headers.map(header => {
-    const uniqueValues = [...new Set(data.map(row => row[header]))].filter(v => v !== '' && v !== '-').sort();
-    return `<div><label class="block text-xs font-semibold text-[#6D776E] mb-1.5 truncate" title="${header}">${header}</label><select onchange="updateFilter('${header}', this.value)" class="w-full px-3 py-2 glass-effect border-2 border-[#E8DCC8] rounded-lg focus:border-[#D4A574] focus:ring-2 focus:ring-[#D4A574]/20 transition-all outline-none text-sm"><option value="">All (${uniqueValues.length})</option>${uniqueValues.slice(0, 100).map(val => `<option value="${val}" ${filters[header] === val ? 'selected' : ''}>${val}</option>`).join('')}</select></div>`;
-  }).join('');
+    document.getElementById('filterContainer').innerHTML = headers.map(header => {
+        const uniqueValues = [...new Set(data.map(row => row[header]))].filter(v => v !== '' && v !== '-').sort();
+        return `<div class="filter-item"><label>${header}</label><select onchange="updateFilter('${header}', this.value)"><option value="">All (${uniqueValues.length})</option>${uniqueValues.slice(0, 100).map(val => `<option value="${val}" ${filters[header] === val ? 'selected' : ''}>${val}</option>`).join('')}</select></div>`;
+    }).join('');
 }
 
 function updateFilter(header, value) {
-  if (value === '') delete filters[header];
-  else filters[header] = value;
-  currentCardIndex = 0;
-  render();
+    if (value === '') delete filters[header];
+    else filters[header] = value;
+    currentCardIndex = 0;
+    render();
 }
 
 function renderCardView() {
-  const filtered = getFilteredData();
-  document.getElementById('cardCounter').innerHTML = `<svg class="w-5 h-5 text-[#D4A574]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/></svg>Card ${currentCardIndex + 1} of ${filtered.length}`;
-  if (filtered.length === 0) {
-    document.getElementById('cardContent').innerHTML = '<p class="text-center text-[#6D776E] py-8">No data matches your filters</p>';
-    return;
-  }
-  const row = filtered[currentCardIndex];
-  const originalIndex = data.indexOf(row);
-  document.getElementById('cardContent').innerHTML = `<div class="space-y-4">${headers.map(header => `<div class="border-b border-[#E8DCC8] pb-4 p-3 rounded-xl hover:bg-[#FFF8EB]/50 transition-all"><label class="block text-sm font-bold text-[#2C3E2F] mb-2 flex items-center gap-2"><svg class="w-4 h-4 text-[#D4A574]" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="3"/></svg>${header}</label>${renderCellInput(originalIndex, header, row[header])}</div>`).join('')}</div>`;
+    const filtered = getFilteredData();
+    document.getElementById('cardCounter').textContent = `Card ${currentCardIndex + 1} of ${filtered.length}`;
+    if (filtered.length === 0) {
+        document.getElementById('cardContent').innerHTML = '<p style="text-align: center; color: #6D776E; padding: 32px;">No data matches your filters</p>';
+        return;
+    }
+    const row = filtered[currentCardIndex];
+    const originalIndex = data.indexOf(row);
+    document.getElementById('cardContent').innerHTML = headers.map(header => 
+        `<div class="card-field"><label>${header}</label>${renderCellInput(originalIndex, header, row[header])}</div>`
+    ).join('');
 }
 
 function renderTableView() {
-  const filtered = getFilteredData();
-  document.getElementById('tableHeader').innerHTML = `<th class="px-4 py-4 text-left font-bold text-sm">Actions</th>${headers.map(h => `<th class="px-4 py-4 text-left font-bold text-sm whitespace-nowrap" title="${h}"><div class="flex items-center gap-2"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>${h}</div></th>`).join('')}`;
-  if (filtered.length === 0) {
-    document.getElementById('tableBody').innerHTML = `<tr><td colspan="${headers.length + 1}" class="px-6 py-12 text-center text-[#6D776E] text-lg"><div class="flex flex-col items-center gap-3"><svg class="w-16 h-16 text-[#D4A574] opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>No data matches your filters</div></td></tr>`;
-    return;
-  }
-  document.getElementById('tableBody').innerHTML = filtered.map(row => {
-    const originalIndex = data.indexOf(row);
-    return `<tr class="border-b border-[#E8DCC8] hover:bg-[#FFF8EB]/50 transition-all"><td class="px-4 py-3"><button onclick="deleteRow(${originalIndex})" class="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-all" title="Delete row"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>${headers.map(header => `<td class="px-4 py-3"><div class="min-w-[120px] max-w-[200px]">${renderCellInput(originalIndex, header, row[header])}</div></td>`).join('')}</tr>`;
-  }).join('');
+    const filtered = getFilteredData();
+    document.getElementById('tableHeader').innerHTML = `<th>Actions</th>${headers.map(h => `<th>${h}</th>`).join('')}`;
+    if (filtered.length === 0) {
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="${headers.length + 1}" style="text-align: center; padding: 48px; color: #6D776E;">No data matches your filters</td></tr>`;
+        return;
+    }
+    document.getElementById('tableBody').innerHTML = filtered.map(row => {
+        const originalIndex = data.indexOf(row);
+        return `<tr><td><button class="delete-btn" onclick="deleteRow(${originalIndex})">🗑️</button></td>${headers.map(header => 
+            `<td><div style="min-width: 120px; max-width: 200px;">${renderCellInput(originalIndex, header, row[header])}</div></td>`
+        ).join('')}</tr>`;
+    }).join('');
 }
 
 function renderCellInput(rowIndex, header, value) {
-  const inputId = `input-${rowIndex}-${header}`;
-  const suggestions = getSuggestionsForField(header);
-  const hasSuggestions = suggestions.length > 0;
-  return `<div class="relative w-full"><input type="text" id="${inputId}" value="${value || ''}" onchange="updateCell(${rowIndex}, '${header}', this.value)" ${hasSuggestions ? `onfocus="showSuggestions('${inputId}', ${rowIndex}, '${header}')"` : ''} class="w-full px-3 py-2 bg-white/80 backdrop-blur-sm border-2 border-[#E8DCC8] rounded-lg focus:border-[#D4A574] focus:ring-2 focus:ring-[#D4A574]/20 transition-all outline-none text-sm" placeholder="Enter ${header}"/>${hasSuggestions ? `<div class="absolute right-2 top-2.5 pointer-events-none"><svg class="w-4 h-4 text-[#D4A574] animate-pulse" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg></div><div id="suggestions-${inputId}" class="hidden absolute z-50 mt-1 w-full bg-white/95 backdrop-blur-lg border-2 border-[#D4A574]/30 rounded-xl shadow-2xl max-h-64 overflow-y-auto"><div class="sticky top-0 bg-gradient-to-r from-[#6D776E]/90 to-[#D4A574]/90 text-white px-3 py-2 text-xs font-bold flex items-center gap-2"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>Smart Suggestions</div>${suggestions.map(s => `<div class="px-3 py-2.5 cursor-pointer hover:bg-[#FFF8EB] border-b border-[#E8DCC8] last:border-0 flex items-center justify-between group transition-all hover:pl-4" onclick="applySuggestion(${rowIndex}, '${header}', '${s.value}', '${inputId}')"><span class="font-medium text-[#2C3E2F] group-hover:text-[#6D776E]">${s.label}</span><span class="text-[10px] px-2 py-1 rounded-full font-bold ${s.badge === 'Common' ? 'bg-[#D4A574] text-white' : s.badge === 'Recent' ? 'bg-[#6D776E] text-white' : s.badge === 'Average' ? 'bg-blue-500 text-white' : 'bg-[#E8DCC8] text-[#6D776E]'}">${s.badge}${s.count ? ` (${s.count})` : ''}</span></div>`).join('')}</div>` : ''}</div>`;
+    const inputId = `input-${rowIndex}-${header}`;
+    const suggestions = getSuggestionsForField(header);
+    return `<div style="position: relative;"><input type="text" id="${inputId}" value="${value || ''}" onchange="updateCell(${rowIndex}, '${header}', this.value)" ${suggestions.length > 0 ? `onfocus="showSuggestions('${inputId}')"` : ''}>${suggestions.length > 0 ? `<div id="suggestions-${inputId}" class="suggestions-dropdown hidden">${suggestions.map(s => `<div class="suggestion-item" onclick="applySuggestion(${rowIndex}, '${header}', '${s.value}', '${inputId}')"><span>${s.label}</span><span class="suggestion-badge ${s.class}">${s.badge}${s.count ? ` (${s.count})` : ''}</span></div>`).join('')}</div>` : ''}</div>`;
 }
 
 function showSuggestions(inputId) {
-  document.querySelectorAll('[id^="suggestions-"]').forEach(el => el.classList.add('hidden'));
-  const suggestionsEl = document.getElementById(`suggestions-${inputId}`);
-  if (suggestionsEl) suggestionsEl.classList.remove('hidden');
+    document.querySelectorAll('.suggestions-dropdown').forEach(el => el.classList.add('hidden'));
+    const suggestionsEl = document.getElementById(`suggestions-${inputId}`);
+    if (suggestionsEl) suggestionsEl.classList.remove('hidden');
 }
 
 function applySuggestion(rowIndex, header, value, inputId) {
-  updateCell(rowIndex, header, value);
-  const suggestionsEl = document.getElementById(`suggestions-${inputId}`);
-  if (suggestionsEl) suggestionsEl.classList.add('hidden');
+    updateCell(rowIndex, header, value);
+    const suggestionsEl = document.getElementById(`suggestions-${inputId}`);
+    if (suggestionsEl) suggestionsEl.classList.add('hidden');
 }
 
-// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded');
-  const fileInput = document.getElementById('fileInput');
-  document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
-  document.getElementById('emptyStateBtn').addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', handleFileUpload);
-  document.getElementById('downloadBtn').addEventListener('click', handleDownload);
-  document.getElementById('undoBtn').addEventListener('click', undo);
-  document.getElementById('redoBtn').addEventListener('click', redo);
-  document.getElementById('addRowBtn').addEventListener('click', addRow);
-  document.getElementById('historyBtn').addEventListener('click', () => {
-    const panel = document.getElementById('historyPanel');
-    panel.classList.toggle('hidden');
-    if (!panel.classList.contains('hidden')) {
-      const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-      document.getElementById('historyList').innerHTML = fileHistory.length === 0 ? '<p class="text-[#6D776E] text-center py-8">No saved files</p>' : fileHistory.map((item, idx) => {
-        const date = new Date(item.timestamp);
-        const seconds = Math.floor((new Date() - date) / 1000);
-        let timeAgo = 'Just now';
-        const intervals = {year: 31536000, month: 2592000, week: 604800, day: 86400, hour: 3600, minute: 60};
-        for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-          const interval = Math.floor(seconds / secondsInUnit);
-          if (interval >= 1) {
-            timeAgo = `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
-            break;
-          }
+    const fileInput = document.getElementById('fileInput');
+    document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+    document.getElementById('emptyStateBtn').addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileUpload);
+    document.getElementById('downloadBtn').addEventListener('click', handleDownload);
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('redoBtn').addEventListener('click', redo);
+    document.getElementById('addRowBtn').addEventListener('click', addRow);
+    document.getElementById('historyBtn').addEventListener('click', () => {
+        const panel = document.getElementById('historyPanel');
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+            document.getElementById('historyList').innerHTML = fileHistory.length === 0 ? '<p style="text-align: center; color: #6D776E; padding: 32px;">No saved files</p>' : fileHistory.map((item, idx) => {
+                const date = new Date(item.timestamp);
+                const seconds = Math.floor((new Date() - date) / 1000);
+                let timeAgo = 'Just now';
+                const intervals = {year: 31536000, month: 2592000, week: 604800, day: 86400, hour: 3600, minute: 60};
+                for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+                    const interval = Math.floor(seconds / secondsInUnit);
+                    if (interval >= 1) {
+                        timeAgo = `${interval} ${unit}${interval !== 1 ? 's' : ''} ago`;
+                        break;
+                    }
+                }
+                return `<div onclick="loadHistoryItem(${idx})" style="padding: 16px; background: rgba(255,255,255,0.8); border-radius: 12px; border: 2px solid #E8DCC8; cursor: pointer; margin-bottom: 12px;"><div style="display: flex; justify-content: space-between;"><div><p style="font-weight: 600; color: #2C3E2F;">${item.fileName}</p><p style="font-size: 12px; color: #6D776E;">${item.rows} rows</p></div><span style="font-size: 12px; color: #D4A574; font-weight: 600;">${timeAgo}</span></div></div>`;
+            }).join('');
         }
-        return `<div onclick="loadHistoryItem(${idx})" class="p-4 glass-effect rounded-xl border-2 border-[#E8DCC8] hover:border-[#D4A574] cursor-pointer transform hover:scale-[1.02] transition-all"><div class="flex justify-between items-start"><div class="flex-1 min-w-0"><p class="font-semibold text-[#2C3E2F] truncate">${item.fileName}</p><p class="text-xs text-[#6D776E]">${item.rows} rows</p></div><span class="text-xs text-[#D4A574] whitespace-nowrap ml-2 font-medium">${timeAgo}</span></div></div>`;
-      }).join('');
-    }
-  });
-  document.getElementById('clearHistoryBtn').addEventListener('click', () => {
-    if (confirm('Clear all saved files? This cannot be undone.')) {
-      localStorage.removeItem('excelFileHistory');
-      document.getElementById('historyPanel').classList.add('hidden');
-      showToast('History cleared');
-    }
-  });
-  document.getElementById('autoSave').addEventListener('change', (e) => {
-    autoSave = e.target.checked;
-    if (autoSave && data.length > 0) saveToStorage();
-  });
-  document.getElementById('tableViewBtn').addEventListener('click', () => {
-    isCardView = false;
-    document.getElementById('tableViewBtn').className = 'px-4 py-2 rounded-lg font-medium transition-all bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white shadow-lg';
-    document.getElementById('cardViewBtn').className = 'px-4 py-2 rounded-lg font-medium transition-all text-[#6D776E] hover:bg-white/50';
+    });
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        if (confirm('Clear all saved files? This cannot be undone.')) {
+            localStorage.removeItem('excelFileHistory');
+            document.getElementById('historyPanel').classList.add('hidden');
+            showToast('History cleared');
+        }
+    });
+    document.getElementById('autoSave').addEventListener('change', (e) => {
+        autoSave = e.target.checked;
+        if (autoSave && data.length > 0) saveToStorage();
+    });
+    document.getElementById('tableViewBtn').addEventListener('click', () => {
+        isCardView = false;
+        document.getElementById('tableViewBtn').classList.add('active');
+        document.getElementById('cardViewBtn').classList.remove('active');
+        render();
+    });
+    document.getElementById('cardViewBtn').addEventListener('click', () => {
+        isCardView = true;
+        document.getElementById('tableViewBtn').classList.remove('active');
+        document.getElementById('cardViewBtn').classList.add('active');
+        render();
+    });
+    document.getElementById('globalSearch').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        render();
+    });
+    document.getElementById('prevCard').addEventListener('click', () => {
+        if (currentCardIndex > 0) {
+            currentCardIndex--;
+            renderCardView();
+        }
+    });
+    document.getElementById('nextCard').addEventListener('click', () => {
+        const filtered = getFilteredData();
+        if (currentCardIndex < filtered.length - 1) {
+            currentCardIndex++;
+            renderCardView();
+        }
+    });
+    document.getElementById('deleteCard').addEventListener('click', () => {
+        const filtered = getFilteredData();
+        const row = filtered[currentCardIndex];
+        const originalIndex = data.indexOf(row);
+        deleteRow(originalIndex);
+    });
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            undo();
+        } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+            e.preventDefault();
+            redo();
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            saveToStorage();
+            showToast('Saved!');
+        }
+    });
     render();
-  });
-  document.getElementById('cardViewBtn').addEventListener('click', () => {
-    isCardView = true;
-    document.getElementById('tableViewBtn').className = 'px-4 py-2 rounded-lg font-medium transition-all text-[#6D776E] hover:bg-white/50';
-    document.getElementById('cardViewBtn').className = 'px-4 py-2 rounded-lg font-medium transition-all bg-gradient-to-r from-[#6D776E] to-[#D4A574] text-white shadow-lg';
-    render();
-  });
-  document.getElementById('globalSearch').addEventListener('input', (e) => {
-    searchTerm = e.target.value;
-    render();
-  });
-  document.getElementById('prevCard').addEventListener('click', () => {
-    if (currentCardIndex > 0) {
-      currentCardIndex--;
-      renderCardView();
-    }
-  });
-  document.getElementById('nextCard').addEventListener('click', () => {
-    const filtered = getFilteredData();
-    if (currentCardIndex < filtered.length - 1) {
-      currentCardIndex++;
-      renderCardView();
-    }
-  });
-  document.getElementById('deleteCard').addEventListener('click', () => {
-    const filtered = getFilteredData();
-    const row = filtered[currentCardIndex];
-    const originalIndex = data.indexOf(row);
-    deleteRow(originalIndex);
-  });
-  document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-      e.preventDefault();
-      undo();
-    } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-      e.preventDefault();
-      redo();
-    } else if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-      e.preventDefault();
-      saveToStorage();
-      showToast('Saved!');
-    }
-  });
-  render();
 });
 
 function loadHistoryItem(index) {
-  const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
-  const item = fileHistory[index];
-  const state = item.state;
-  currentFileName = item.fileName;
-  data = state.data || [];
-  headers = state.headers || [];
-  filters = state.filters || {};
-  searchTerm = state.searchTerm || '';
-  currentCardIndex = state.currentCardIndex || 0;
-  isCardView = state.isCardView || false;
-  history = [JSON.parse(JSON.stringify(data))];
-  historyIndex = 0;
-  if (data.length > 0) {
-    analyzeDataForSuggestions();
-    render();
-    showToast(`Loaded: ${item.fileName}`);
-  }
-  document.getElementById('historyPanel').classList.add('hidden');
+    const fileHistory = JSON.parse(localStorage.getItem('excelFileHistory') || '[]');
+    const item = fileHistory[index];
+    const state = item.state;
+    currentFileName = item.fileName;
+    data = state.data || [];
+    headers = state.headers || [];
+    filters = state.filters || {};
+    searchTerm = state.searchTerm || '';
+    currentCardIndex = state.currentCardIndex || 0;
+    isCardView = state.isCardView || false;
+    history = [JSON.parse(JSON.stringify(data))];
+    historyIndex = 0;
+    if (data.length > 0) {
+        analyzeDataForSuggestions();
+        render();
+        showToast(`Loaded: ${item.fileName}`);
+    }
+    document.getElementById('historyPanel').classList.add('hidden');
 }
-
-console.log('Script loaded successfully');
     </script>
 </body>
 </html>
