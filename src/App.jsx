@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { 
   Upload, Download, Undo, Redo, Plus, History, 
-  Grid3x3, CreditCard, Search, Trash2, X 
+  Grid, CreditCard, Search, Trash2, X 
 } from 'lucide-react';
 import SuggestionInput from './components/SuggestionInput';
 import Toast from './components/Toast';
@@ -319,7 +319,7 @@ function App() {
                       : 'text-terracotta'
                   }`}
                 >
-                  <Grid3x3 className="inline-block" size={16} />
+                  <Grid className="inline-block" size={16} />
                   <span className="ml-1 hidden sm:inline">Table</span>
                 </button>
                 <button
