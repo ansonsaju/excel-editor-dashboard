@@ -15,6 +15,7 @@ function App() {
   const [activeSheet, setActiveSheet] = useState(0);
   const [data, setData] = useState([]);
   const [headers, setHeaders] = useState([]);
+  const [formulas, setFormulas] = useState({}); // Store formulas separately
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [filters, setFilters] = useState({});
@@ -25,6 +26,8 @@ function App() {
   const [currentFileName, setCurrentFileName] = useState('');
   const [showHistory, setShowHistory] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [selectedCell, setSelectedCell] = useState(null); // {row, col}
+  const [formulaBarValue, setFormulaBarValue] = useState('');
 
   // Load from storage on mount
   useEffect(() => {
@@ -195,8 +198,110 @@ function App() {
 
     const newData = [...data];
     newData[rowIndex][header] = value;
+    
+    // Auto-fill logic for specific column patterns
+    if (header.toLowerCase().includes('input') || header === headers[0]) {
+      applyAutoFillFormulas(newData, rowIndex, value);
+    }
+    
     setData(newData);
     addToHistory(newData);
+  };
+
+  const applyAutoFillFormulas = (dataArray, rowIndex, inputValue) => {
+    // Parse input format like "1-2-3", "7-8-9", "6-65-90"
+    const parts = String(inputValue).split('-').map(p => p.trim());
+    
+    if (parts.length >= 3) {
+      const [ll, chest, sleeve] = parts;
+      
+      // Find column names (case-insensitive)
+      const llCol = headers.find(h => h.toLowerCase().includes('ll'));
+      const chestCol = headers.find(h => h.toLowerCase().includes('chest'));
+      const sleeveCol = headers.find(h => h.toLowerCase().includes('sleeve'));
+      const outputCol = headers.find(h => h.toLowerCase().includes('output') || h.toLowerCase().includes('final'));
+      
+      // Auto-fill the columns
+      if (llCol) dataArray[rowIndex][llCol] = ll.padStart(2, '0');
+      if (chestCol) dataArray[rowIndex][chestCol] = chest.padStart(2, '0');
+      if (sleeveCol) dataArray[rowIndex][sleeveCol] = sleeve.padStart(2, '0');
+      
+      // Generate final output format
+      if (outputCol) {
+        const formattedLL = ll.padStart(2, '0');
+        const formattedChest = chest.padStart(2, '0');
+        const formattedSleeve = sleeve.padStart(2, '0');
+        dataArray[rowIndex][outputCol] = `${formattedLL}x${formattedChest}x${formattedSleeve}`;
+      }
+      
+      showToast('Auto-filled from input!');
+    }
+  };
+
+  const evaluateFormula = (formula, rowIndex) => {
+    try {
+      // Support Excel-style formulas like =B2+C2, =SUM(B2:D2), etc.
+      if (!formula.startsWith('=')) return formula;
+      
+      let expr = formula.substring(1);
+      
+      // Replace cell references with actual values
+      // Support formats: B2, C3, etc.
+      expr = expr.replace(/([A-Z]+)(\d+)/g, (match, col, row) => {
+        const colIndex = col.charCodeAt(0) - 65; // A=0, B=1, etc.
+        const rowIdx = parseInt(row) - 2; // -2 because row 1 is header, array is 0-indexed
+        
+        if (rowIdx >= 0 && rowIdx < data.length && colIndex < headers.length) {
+          const value = data[rowIdx][headers[colIndex]];
+          return isNaN(value) ? `"${value}"` : value;
+        }
+        return '0';
+      });
+      
+      // Handle SUM function: SUM(B2:D2)
+      expr = expr.replace(/SUM\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/gi, (match, startCol, startRow, endCol, endRow) => {
+        const startColIdx = startCol.charCodeAt(0) - 65;
+        const endColIdx = endCol.charCodeAt(0) - 65;
+        const rowIdx = parseInt(startRow) - 2;
+        
+        let sum = 0;
+        if (rowIdx >= 0 && rowIdx < data.length) {
+          for (let i = startColIdx; i <= endColIdx; i++) {
+            if (i < headers.length) {
+              const val = parseFloat(data[rowIdx][headers[i]]) || 0;
+              sum += val;
+            }
+          }
+        }
+        return sum;
+      });
+      
+      // Handle CONCAT function: CONCAT(B2,"-",C2)
+      expr = expr.replace(/CONCAT\((.*?)\)/gi, (match, args) => {
+        return args.split(',').map(arg => {
+          arg = arg.trim();
+          if (arg.startsWith('"') && arg.endsWith('"')) {
+            return arg.slice(1, -1);
+          }
+          const cellMatch = arg.match(/([A-Z]+)(\d+)/);
+          if (cellMatch) {
+            const colIdx = cellMatch[1].charCodeAt(0) - 65;
+            const rowIdx = parseInt(cellMatch[2]) - 2;
+            if (rowIdx >= 0 && rowIdx < data.length && colIdx < headers.length) {
+              return data[rowIdx][headers[colIdx]];
+            }
+          }
+          return arg;
+        }).join('');
+      });
+      
+      // Evaluate the expression safely
+      // eslint-disable-next-line no-eval
+      const result = eval(expr);
+      return result;
+    } catch (error) {
+      return formula; // Return original if evaluation fails
+    }
   };
 
   const addRow = () => {
@@ -440,6 +545,37 @@ function App() {
               exit={{ opacity: 0, height: 0 }}
               className="glass rounded-xl shadow-lg p-4 mb-4"
             >
+              {/* Formula Bar */}
+              <div className="mb-4 flex items-center gap-2">
+                <label className="text-sm font-semibold text-sage min-w-[60px]">
+                  Formula:
+                </label>
+                <input
+                  type="text"
+                  value={formulaBarValue}
+                  onChange={(e) => {
+                    setFormulaBarValue(e.target.value);
+                    if (selectedCell) {
+                      updateCell(selectedCell.row, selectedCell.col, e.target.value);
+                    }
+                  }}
+                  placeholder="Enter value or formula (e.g., =B2+C2, =SUM(B2:D2), =CONCAT(B2,&quot;x&quot;,C2))"
+                  className="flex-1 px-3 py-2 border-2 border-cream rounded-lg focus:border-terracotta focus:outline-none font-mono text-sm"
+                />
+                <button
+                  onClick={() => {
+                    if (selectedCell && formulaBarValue) {
+                      const evaluated = evaluateFormula(formulaBarValue, selectedCell.row);
+                      showToast(`Result: ${evaluated}`);
+                    }
+                  }}
+                  className="btn-primary text-white px-4 py-2 rounded-lg text-sm"
+                  disabled={!selectedCell}
+                >
+                  Evaluate
+                </button>
+              </div>
+
               <div className="mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 text-terracotta" size={18} />
@@ -528,6 +664,10 @@ function App() {
             onUpdate={updateCell}
             onDelete={deleteRow}
             allData={data}
+            onCellSelect={(row, col, value) => {
+              setSelectedCell({ row, col });
+              setFormulaBarValue(value);
+            }}
           />
         ) : (
           <TableView
@@ -537,6 +677,11 @@ function App() {
             onDelete={deleteRow}
             originalData={data}
             allData={data}
+            onCellSelect={(row, col, value) => {
+              setSelectedCell({ row, col });
+              setFormulaBarValue(value);
+            }}
+            evaluateFormula={evaluateFormula}
           />
         )}
       </div>
@@ -634,7 +779,7 @@ function HistoryList({ onLoad }) {
 }
 
 // Table View Component
-function TableView({ data, headers, onUpdate, onDelete, originalData, allData }) {
+function TableView({ data, headers, onUpdate, onDelete, originalData, allData, onCellSelect, evaluateFormula }) {
   if (data.length === 0) {
     return (
       <motion.div
@@ -684,20 +829,31 @@ function TableView({ data, headers, onUpdate, onDelete, originalData, allData })
                       <Trash2 size={14} />
                     </button>
                   </td>
-                  {headers.map(header => (
-                    <td key={header} className="px-3 py-2">
-                      <div title={row[header]} className="min-w-[80px] max-w-[150px]">
-                        <SuggestionInput
-                          value={row[header]}
-                          column={header}
-                          rowIndex={originalIndex}
-                          onChange={(value) => onUpdate(originalIndex, header, value)}
-                          allData={allData}
-                          isCard={false}
-                        />
-                      </div>
-                    </td>
-                  ))}
+                  {headers.map(header => {
+                    const cellValue = row[header];
+                    const displayValue = String(cellValue).startsWith('=') 
+                      ? evaluateFormula(cellValue, originalIndex) 
+                      : cellValue;
+                    
+                    return (
+                      <td 
+                        key={header} 
+                        className="px-3 py-2 cursor-pointer hover:bg-sand hover:bg-opacity-30"
+                        onClick={() => onCellSelect(originalIndex, header, cellValue)}
+                      >
+                        <div title={cellValue} className="min-w-[80px] max-w-[150px]">
+                          <SuggestionInput
+                            value={displayValue}
+                            column={header}
+                            rowIndex={originalIndex}
+                            onChange={(value) => onUpdate(originalIndex, header, value)}
+                            allData={allData}
+                            isCard={false}
+                          />
+                        </div>
+                      </td>
+                    );
+                  })}
                 </motion.tr>
               );
             })}
@@ -709,7 +865,7 @@ function TableView({ data, headers, onUpdate, onDelete, originalData, allData })
 }
 
 // Card View Component
-function CardView({ data, headers, currentIndex, onNavigate, onUpdate, onDelete, allData }) {
+function CardView({ data, headers, currentIndex, onNavigate, onUpdate, onDelete, allData, onCellSelect }) {
   if (data.length === 0) {
     return (
       <motion.div
