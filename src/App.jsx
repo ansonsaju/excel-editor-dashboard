@@ -197,16 +197,21 @@ function App() {
     if (rowIndex < 0 || rowIndex >= data.length) return;
 
     const newData = [...data];
-    newData[rowIndex][header] = value;
     
-    // Auto-fill logic for specific column patterns
-    // Only trigger if this is the Input column (first column or contains "input")
+    // Check if this is the Input column and contains dash-separated values
     const isInputColumn = header.toLowerCase().includes('input') || 
                           header === headers[0] || 
                           header.toLowerCase().includes('ll-ch-sl');
     
     if (isInputColumn && value && String(value).includes('-')) {
+      // First, set the input value (preserve it)
+      newData[rowIndex][header] = value;
+      
+      // Then apply auto-fill to other columns
       applyAutoFillFormulas(newData, rowIndex, value);
+    } else {
+      // Normal cell update
+      newData[rowIndex][header] = value;
     }
     
     setData(newData);
@@ -214,32 +219,91 @@ function App() {
   };
 
   const applyAutoFillFormulas = (dataArray, rowIndex, inputValue) => {
-    // Parse input format like "1-2-3", "7-8-9", "98-56-22"
+    // Parse input format like "44-89-77", "7-8-9", "98-56-22"
     const parts = String(inputValue).split('-').map(p => p.trim());
     
     if (parts.length >= 3) {
       const [ll, chest, sleeve] = parts;
       
-      // Find column names (case-insensitive)
-      const llCol = headers.find(h => h.toLowerCase().includes('ll'));
-      const chestCol = headers.find(h => h.toLowerCase().includes('chest'));
-      const sleeveCol = headers.find(h => h.toLowerCase().includes('sleeve'));
-      const outputCol = headers.find(h => h.toLowerCase().includes('output') || h.toLowerCase().includes('final'));
+      // Find the input column first
+      const inputCol = headers.find(h => 
+        h.toLowerCase().includes('input') || 
+        h.toLowerCase().includes('ll-ch-sl')
+      );
+      
+      // Find LL column - must be exactly "LL" or close match, but NOT the input column
+      const llCol = headers.find(h => {
+        const lower = h.toLowerCase().trim();
+        return (lower === 'll' || h.trim() === 'LL') && h !== inputCol;
+      });
+      
+      // Find Chest column - must include "chest" but NOT be input column
+      const chestCol = headers.find(h => {
+        const lower = h.toLowerCase();
+        return lower.includes('chest') && h !== inputCol;
+      });
+      
+      // Find Sleeve column - must include "sleeve" but NOT be input column  
+      const sleeveCol = headers.find(h => {
+        const lower = h.toLowerCase();
+        return lower.includes('sleeve') && h !== inputCol;
+      });
+      
+      // Find Output column - must include "output" or "final" but NOT be input column
+      const outputCol = headers.find(h => {
+        const lower = h.toLowerCase();
+        return (lower.includes('output') || lower.includes('final')) && h !== inputCol;
+      });
+      
+      // Debug logging (will be removed in production)
+      console.log('Auto-fill detected:', {
+        inputValue,
+        parts: [ll, chest, sleeve],
+        columns: {
+          input: inputCol,
+          ll: llCol,
+          chest: chestCol,
+          sleeve: sleeveCol,
+          output: outputCol
+        }
+      });
       
       // Auto-fill the columns with proper zero-padding (2 digits minimum)
-      if (llCol) dataArray[rowIndex][llCol] = ll.padStart(2, '0');
-      if (chestCol) dataArray[rowIndex][chestCol] = chest.padStart(2, '0');
-      if (sleeveCol) dataArray[rowIndex][sleeveCol] = sleeve.padStart(2, '0');
+      if (llCol) {
+        dataArray[rowIndex][llCol] = ll.padStart(2, '0');
+        console.log(`Set ${llCol} = ${ll.padStart(2, '0')}`);
+      } else {
+        console.warn('LL column not found!');
+      }
       
-      // Generate final output format: LLxCHxSL (e.g., 98x56x22)
+      if (chestCol) {
+        dataArray[rowIndex][chestCol] = chest.padStart(2, '0');
+        console.log(`Set ${chestCol} = ${chest.padStart(2, '0')}`);
+      } else {
+        console.warn('Chest column not found!');
+      }
+      
+      if (sleeveCol) {
+        dataArray[rowIndex][sleeveCol] = sleeve.padStart(2, '0');
+        console.log(`Set ${sleeveCol} = ${sleeve.padStart(2, '0')}`);
+      } else {
+        console.warn('Sleeve column not found!');
+      }
+      
+      // Generate final output format: LLxCHxSL (e.g., 44x89x77)
       if (outputCol) {
         const formattedLL = ll.padStart(2, '0');
         const formattedChest = chest.padStart(2, '0');
         const formattedSleeve = sleeve.padStart(2, '0');
         dataArray[rowIndex][outputCol] = `${formattedLL}x${formattedChest}x${formattedSleeve}`;
+        console.log(`Set ${outputCol} = ${formattedLL}x${formattedChest}x${formattedSleeve}`);
+      } else {
+        console.warn('Output column not found!');
       }
       
       showToast('Auto-filled from input!');
+    } else {
+      console.warn('Invalid input format. Expected: XX-XX-XX, got:', inputValue);
     }
   };
 
