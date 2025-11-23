@@ -200,7 +200,12 @@ function App() {
     newData[rowIndex][header] = value;
     
     // Auto-fill logic for specific column patterns
-    if (header.toLowerCase().includes('input') || header === headers[0]) {
+    // Only trigger if this is the Input column (first column or contains "input")
+    const isInputColumn = header.toLowerCase().includes('input') || 
+                          header === headers[0] || 
+                          header.toLowerCase().includes('ll-ch-sl');
+    
+    if (isInputColumn && value && String(value).includes('-')) {
       applyAutoFillFormulas(newData, rowIndex, value);
     }
     
@@ -209,7 +214,7 @@ function App() {
   };
 
   const applyAutoFillFormulas = (dataArray, rowIndex, inputValue) => {
-    // Parse input format like "1-2-3", "7-8-9", "6-65-90"
+    // Parse input format like "1-2-3", "7-8-9", "98-56-22"
     const parts = String(inputValue).split('-').map(p => p.trim());
     
     if (parts.length >= 3) {
@@ -221,12 +226,12 @@ function App() {
       const sleeveCol = headers.find(h => h.toLowerCase().includes('sleeve'));
       const outputCol = headers.find(h => h.toLowerCase().includes('output') || h.toLowerCase().includes('final'));
       
-      // Auto-fill the columns
+      // Auto-fill the columns with proper zero-padding (2 digits minimum)
       if (llCol) dataArray[rowIndex][llCol] = ll.padStart(2, '0');
       if (chestCol) dataArray[rowIndex][chestCol] = chest.padStart(2, '0');
       if (sleeveCol) dataArray[rowIndex][sleeveCol] = sleeve.padStart(2, '0');
       
-      // Generate final output format
+      // Generate final output format: LLxCHxSL (e.g., 98x56x22)
       if (outputCol) {
         const formattedLL = ll.padStart(2, '0');
         const formattedChest = chest.padStart(2, '0');
@@ -668,6 +673,7 @@ function App() {
               setSelectedCell({ row, col });
               setFormulaBarValue(value);
             }}
+            evaluateFormula={evaluateFormula}
           />
         ) : (
           <TableView
@@ -865,7 +871,7 @@ function TableView({ data, headers, onUpdate, onDelete, originalData, allData, o
 }
 
 // Card View Component
-function CardView({ data, headers, currentIndex, onNavigate, onUpdate, onDelete, allData, onCellSelect }) {
+function CardView({ data, headers, currentIndex, onNavigate, onUpdate, onDelete, allData, onCellSelect, evaluateFormula }) {
   if (data.length === 0) {
     return (
       <motion.div
@@ -923,25 +929,33 @@ function CardView({ data, headers, currentIndex, onNavigate, onUpdate, onDelete,
         className="glass rounded-xl shadow-2xl p-4 md:p-8"
       >
         <div className="space-y-3">
-          {headers.map((header, idx) => (
-            <motion.div
-              key={header}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03 }}
-              className="border-b border-cream pb-3 p-2 rounded-lg hover:bg-ivory transition-all"
-            >
-              <label className="block text-sm font-semibold text-sage mb-2">{header}</label>
-              <SuggestionInput
-                value={row[header]}
-                column={header}
-                rowIndex={originalIndex}
-                onChange={(value) => onUpdate(originalIndex, header, value)}
-                allData={allData}
-                isCard={true}
-              />
-            </motion.div>
-          ))}
+          {headers.map((header, idx) => {
+            const cellValue = row[header];
+            const displayValue = String(cellValue).startsWith('=') 
+              ? evaluateFormula(cellValue, originalIndex) 
+              : cellValue;
+            
+            return (
+              <motion.div
+                key={header}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.03 }}
+                className="border-b border-cream pb-3 p-2 rounded-lg hover:bg-ivory transition-all"
+                onClick={() => onCellSelect && onCellSelect(originalIndex, header, cellValue)}
+              >
+                <label className="block text-sm font-semibold text-sage mb-2">{header}</label>
+                <SuggestionInput
+                  value={displayValue}
+                  column={header}
+                  rowIndex={originalIndex}
+                  onChange={(value) => onUpdate(originalIndex, header, value)}
+                  allData={allData}
+                  isCard={true}
+                />
+              </motion.div>
+            );
+          })}
         </div>
       </motion.div>
     </>
